@@ -1,4 +1,4 @@
-# CivicPulse Gauteng — Political Geography, Deprivation & Voter Participation
+# CivicPulse
 
 > **DIRISA Student Datathon Challenge 2026 · Teams Qualification Submission**  
 > **Author / Lead Investigator:** Bonga Manzini (CSIR Civic Intelligence Fellow)  
