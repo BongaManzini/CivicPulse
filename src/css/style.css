@@ -359,16 +359,14 @@ select {
 
 .full-app-container,
 .device-view-container,
-.board-view-container,
-.rubric-view-container {
+.board-view-container {
   display: none;
   width: 100%;
 }
 
 .full-app-container.active,
 .device-view-container.active,
-.board-view-container.active,
-.rubric-view-container.active {
+.board-view-container.active {
   display: flex;
 }
 
@@ -2283,76 +2281,39 @@ select {
 }
 
 /* --------------------------------------------------------------------------
-   15. Mode 3: Rubric & Documentation View
+   15. Card Header Flex & Status Badges
    -------------------------------------------------------------------------- */
-.rubric-view-container {
-  justify-content: center;
-  padding: 20px;
-}
-
-.rubric-document-card {
-  width: 100%;
-  max-width: 900px;
-  background: var(--bg-card);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-card);
-  border-radius: 24px;
-  padding: 32px;
-  box-shadow: var(--shadow-lg);
-}
-
-.rubric-doc-header {
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.doc-badge {
-  display: inline-block;
+.card-summary-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  padding: 8px 16px;
+  border-radius: 12px;
+}
+
+.card-summary-badge .rs-score {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #c4b5fd;
+}
+
+.card-summary-badge .rs-lbl {
   font-size: 0.72rem;
-  font-weight: 800;
-  color: var(--primary);
-  background: rgba(59, 130, 246, 0.15);
-  padding: 4px 10px;
-  border-radius: 20px;
-  margin-bottom: 8px;
-}
-
-.doc-title {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 800;
-  margin-bottom: 4px;
-}
-
-.doc-byline {
-  font-size: 0.85rem;
   color: var(--text-dim);
-}
-
-.rubric-table-responsive {
-  overflow-x: auto;
-  margin-bottom: 24px;
-}
-
-.rubric-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.rubric-table th,
-.rubric-table td {
-  padding: 12px 14px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.rubric-table th {
-  color: var(--text-dim);
-  font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.72rem;
+  letter-spacing: 0.05em;
 }
 
 .status-pill {

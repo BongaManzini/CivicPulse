@@ -7,8 +7,8 @@ class CivicPulseApp {
   constructor() {
     this.currentScreen = 1;
     this.totalScreens = 8;
-    this.currentMode = 'fullapp'; // 'fullapp' | 'device' | 'board' | 'rubric'
-    this.currentFullTab = 'overview'; // 'overview' | 'map' | 'wards' | 'analytics' | 'simulator' | 'quiz' | 'rubric'
+    this.currentMode = 'fullapp'; // 'fullapp' | 'device' | 'board'
+    this.currentFullTab = 'overview'; // 'overview' | 'map' | 'wards' | 'analytics' | 'simulator' | 'quiz' | 'purpose' | 'deployment'
     this.boardZoom = 1.0;
     this.theme = 'dark';
     
@@ -210,7 +210,6 @@ class CivicPulseApp {
     document.getElementById('btnModeFullApp')?.addEventListener('click', () => this.setMode('fullapp'));
     document.getElementById('btnModeDevice')?.addEventListener('click', () => this.setMode('device'));
     document.getElementById('btnModeBoard')?.addEventListener('click', () => this.setMode('board'));
-    document.getElementById('btnModeRubric')?.addEventListener('click', () => this.setMode('rubric'));
 
     // Screen Stepper Pills
     document.querySelectorAll('.step-pill').forEach(pill => {
@@ -233,7 +232,7 @@ class CivicPulseApp {
 
     // Research Notes Docs button
     document.getElementById('btnOpenDocs')?.addEventListener('click', () => {
-      this.switchFullTab('rubric');
+      this.switchFullTab('purpose');
       this.setMode('fullapp');
     });
 
@@ -274,13 +273,11 @@ class CivicPulseApp {
     const fullContainer = document.getElementById('fullAppContainer');
     const devContainer = document.getElementById('deviceViewContainer');
     const boardContainer = document.getElementById('boardViewContainer');
-    const rubricContainer = document.getElementById('rubricViewContainer');
     const stepper = document.getElementById('screenStepper');
 
     fullContainer?.classList.toggle('active', mode === 'fullapp');
     devContainer?.classList.toggle('active', mode === 'device');
     boardContainer?.classList.toggle('active', mode === 'board');
-    rubricContainer?.classList.toggle('active', mode === 'rubric');
 
     if (stepper) {
       stepper.style.display = (mode === 'device') ? 'flex' : 'none';
@@ -301,7 +298,6 @@ class CivicPulseApp {
     if (mode === 'full' || mode === 'fullapp') this.setMode('fullapp');
     else if (mode === 'mobile' || mode === 'device') this.setMode('device');
     else if (mode === 'board') this.setMode('board');
-    else if (mode === 'rubric') this.setMode('rubric');
     else this.setMode(mode);
   }
 
