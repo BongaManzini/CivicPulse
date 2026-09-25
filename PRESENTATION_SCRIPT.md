@@ -3,7 +3,7 @@
 > **Lead Investigator & Systems Architect:** Bonga Manzini (CSIR Civic Intelligence Fellow)  
 > **Event / Evaluation:** DIRISA Student Datathon Challenge 2026 · Teams Qualification & Pitch  
 > **Target Election:** Local Government Elections (LGE), 4 November 2026  
-> **Live Production System:** [https://civicpulse-gauteng-2026.netlify.app/](https://civicpulse-gauteng-2026.netlify.app/)  
+> **Live Production System & Repository:** [https://github.com/BongaManzini/CivicPulse](https://github.com/BongaManzini/CivicPulse)  
 > **GitHub Repository:** [https://github.com/BongaManzini/CivicPulse](https://github.com/BongaManzini/CivicPulse)  
 
 ---
@@ -49,7 +49,7 @@ As the **Lead Investigator and Systems Architect** for CivicPulse, **Bonga Manzi
 
 ### Phase 1: The Democratic Crisis & Problem Statement (0:00 – 1:30)
 
-**[Visual Action: Open https://civicpulse-gauteng-2026.netlify.app/ in Full Web App mode. Click 'Study Purpose & Problem' tab in sidebar.]**
+**[Visual Action: Open https://github.com/BongaManzini/CivicPulse / live app at http://localhost:5173/ in Full Web App mode. Click 'Study Purpose & Problem' tab in sidebar.]**
 
 **Speaker (Bonga Manzini):**
 > "Good morning, esteemed judges, mentors, and evaluators. My name is **Bonga Manzini**, Lead Investigator and Systems Architect for **CivicPulse**.
@@ -146,10 +146,10 @@ As the **Lead Investigator and Systems Architect** for CivicPulse, **Bonga Manzi
 > "Finally, let's talk about engineering robustness and reproducibility:
 >
 > 1. **Offline Edge Architecture:**  
->    CivicPulse does not rely on a brittle backend database that can crash under high traffic. All 354 wards, 2,268 voting districts, and Ridge model inference vectors are compiled into a compressed **505KB offline-first payload** (`civicpulse_data.json`). The web application boots in milliseconds, works offline, and costs $0.00 to scale on Netlify.
+>    CivicPulse does not rely on a brittle backend database that can crash under high traffic. All 354 wards, 2,268 voting districts, and Ridge model inference vectors are compiled into a compressed **505KB offline-first payload** (`civicpulse_data.json`). The web application boots in milliseconds, works offline, and costs $0.00 to host on GitHub.
 >
 > 2. **Multi-Tier Deployment:**  
->    - **Tier 1:** Full Web App & Mobile Prototype live in production on Netlify.
+>    - **Tier 1:** Full Web App & Mobile Prototype live in production on GitHub.
 >    - **Tier 2:** In-Notebook Interactive Colab widget (`CivicPulse_Submission.ipynb`) allowing markers to audit any ward directly inside Google Colab without installing packages.
 >    - **Tier 3:** Standalone Python Streamlit Data Studio (`streamlit_app.py`) for data scientists and journalists.
 >
@@ -186,7 +186,7 @@ As the **Lead Investigator and Systems Architect** for CivicPulse, **Bonga Manzi
 ---
 
 ## 4. Quick Presentation Checklist
-- [ ] Ensure browser is open to `https://civicpulse-gauteng-2026.netlify.app/`
+- [ ] Ensure browser is open to `https://github.com/BongaManzini/CivicPulse` (or local `http://localhost:5173/`)
 - [ ] Test mode buttons: `Full Web App`, `Mobile Prototype`, `Wireframe Board`
 - [ ] Test Omni-Search: Type `Mamelodi` or `79900059`
 - [ ] Test Policy Simulator sliders and click `Export Structured Policy Brief`

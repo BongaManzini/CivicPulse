@@ -2,17 +2,17 @@
 set -e
 
 # ==============================================================================
-# CivicPulse Automated Sync: GitHub + Netlify Production
+# CivicPulse Automated Sync: GitHub Production
 # Usage: ./scripts/sync.sh ["optional commit message"]
 # ==============================================================================
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_DIR"
 
-MSG="${1:-chore: sync project updates to GitHub and Netlify production [$(date '+%Y-%m-%d %H:%M')]}"
+MSG="${1:-chore: sync project updates to GitHub [$(date '+%Y-%m-%d %H:%M')]}"
 
 echo "========================================================"
-echo "🚀 CivicPulse Dual-Deployment Pipeline (GitHub + Netlify)"
+echo "🚀 CivicPulse Deployment Pipeline (GitHub)"
 echo "========================================================"
 
 # 1. Check Git Status

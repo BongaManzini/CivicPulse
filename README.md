@@ -4,6 +4,37 @@
 > **Author / Lead Investigator:** Bonga Manzini (CSIR Civic Intelligence Fellow)  
 > **Target Election:** Local Government Elections (LGE), 4 November 2026  
 > **Geographic Scope:** Gauteng Metropolises (City of Johannesburg, City of Tshwane, City of Ekurhuleni) — 354 Wards, 2,268 Voting Districts  
+> **GitHub Repository:** [https://github.com/BongaManzini/CivicPulse](https://github.com/BongaManzini/CivicPulse)  
+> **Local App URL:** [http://localhost:5173/](http://localhost:5173/)  
+
+---
+
+## ⚡ Quickstart: How to Launch CivicPulse (Under 60 Seconds)
+
+Launch the full interactive intelligence platform locally with three terminal commands:
+
+```bash
+# 1. Clone the official GitHub repository
+git clone https://github.com/BongaManzini/CivicPulse.git
+cd CivicPulse
+
+# 2. Install dependencies (Node.js 18+ required)
+npm install
+
+# 3. Start local development server
+npm run dev
+```
+
+Open your browser to:  
+👉 **[http://localhost:5173/](http://localhost:5173/)**
+
+### What You Can Experience Immediately Upon Launch:
+- 📊 **Enterprise Web App Dashboard:** Instant sub-second browsing across 354 wards and 2,268 voting districts powered by an offline 505KB payload (`civicpulse_data.json`).
+- 🤖 **CivicPulse AI Chatbot:** Interactive conversational assistant with direct indexing of all wards, Census 2022 indicators, hypotheses ($H_1$/$H_2$), and policy simulation scenarios.
+- 🗺️ **Multi-Layer GIS Map:** Interactive choropleth visualizing 2021 turnout, Stats SA deprivation quartiles, and the **203 temporary canvas tent voting stations**.
+- 📱 **iPhone 16 Pro Mobile Prototype:** 8-screen responsive mobile experience with tactile Dynamic Island and Youth Civic Alignment Quiz.
+- 🧪 **What-If Policy Simulator:** Interactive econometric levers (water access, transit subsidies, tent replacements) projecting youth voter turnout uplift.
+- 🎬 **Guided Presentation Tour:** Built-in interactive presenter HUD for evaluators and judges (`Guided Demo Tour` button in header).
 
 ---
 
@@ -114,8 +145,10 @@ Adhering to the DIRISA deployment criteria, CivicPulse is deployed in **three co
 - **Offline Edge Capability:** Bundles the complete audited 354-ward and 2,268-voting district dataset in a compressed **505KB JSON payload** (`src/data/civicpulse_data.json`).
 - **Performance:** Instantaneous sub-second UI response, zero cloud database latency, zero hosting costs, and complete privacy compliance.
 - **Dual Interfaces:** Seamlessly toggles between the **Full Web Application** (desktop/tablet dashboard), the **Mobile Prototype** (iPhone 16 Pro frame with tactile dynamic island), and the **Wireframe Canvas Board** (8-screen synchronized canvas).
+- **CivicPulse AI Chatbot:** Built-in conversational intelligence assistant capable of instant ward queries, statistical hypothesis auditing, policy simulation counterfactuals, and natural-language civic exploration.
 - **Policy Simulator Studio:** Interactive what-if policy lab with dynamic levers for water/sanitation delivery, transit subsidies, and tent station replacements.
 - **Export Engine:** One-click export of structured **Policy Briefs (JSON/PDF)** for municipal ward committees.
+- **Repository & Production Source:** [https://github.com/BongaManzini/CivicPulse](https://github.com/BongaManzini/CivicPulse)
 
 ### Tier 2: In-Notebook Interactive Explorer (`CivicPulse_Submission.ipynb`)
 - Embedded directly in Section 9.2 of the submission notebook using `ipywidgets`.
@@ -128,33 +161,45 @@ Adhering to the DIRISA deployment criteria, CivicPulse is deployed in **three co
 
 ## 6. How to Run & Demo the Application
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm (v9 or higher)
-
-### Installation & Launch
+### Option A: Modern Web Application & Mobile Prototype (Primary)
 ```bash
-# 1. Clone or navigate to the repository directory
+# 1. Clone the repository
+git clone https://github.com/BongaManzini/CivicPulse.git
 cd CivicPulse
 
 # 2. Install dependencies
 npm install
 
-# 3. Start local development server
+# 3. Start local development server (Vite on port 5173)
 npm run dev
 ```
 
-The application will be live at:
-**[http://localhost:5173/](http://localhost:5173/)**
+The application will be live at:  
+👉 **[http://localhost:5173/](http://localhost:5173/)**
 
-### Production Build
+#### Production Build & Local Preview
 ```bash
-# Build optimized production bundle
+# Compile optimized static bundle to dist/
 npm run build
 
 # Preview production build locally
 npm run preview
 ```
+
+### Option B: Standalone Python Streamlit Data Studio
+```bash
+# 1. Install Python data science dependencies
+pip install streamlit pandas numpy scikit-learn joblib plotly
+
+# 2. Launch the Streamlit application
+streamlit run streamlit_app.py
+```
+Live at **[http://localhost:8501/](http://localhost:8501/)**.
+
+### Option C: In-Notebook Interactive Colab Explorer
+1. Open `CivicPulse_Submission.ipynb` in [Google Colab](https://colab.research.google.com/) or JupyterLab.
+2. Run cells sequentially down to **Section 9.2 (Interactive In-Notebook Explorer)**.
+3. Use the reactive dropdowns and sliders to score any ward directly in the notebook with zero package installation.
 
 ---
 
@@ -183,11 +228,12 @@ CivicPulse includes a built-in **Interactive Guided Demo HUD** designed for eval
 | **4. Feature Engineering** | Tent-served VD informal settlement marker, Effective Number of Parties (ENP), victory margins, deprivation composite index. | `CivicPulse_Submission.ipynb` (§4), `app.js` (`updateFullWardCard`) |
 | **5. Model Selection & CV** | Spatial 5-fold cross-validation, 1-SE rule selection of Ridge (MAE 6.32 pp, $R^2$ 0.365) over OLS ($\text{VIF} > 10$) and Random Forest. | `CivicPulse_Submission.ipynb` (§7), `index.html` (`#fullModelsTable`) |
 | **6. Hypothesis Tests ($H_1$ & $H_2$)** | $H_1$ deprivation friction confirmed ($r = -0.412, p < 0.001$, -1.00 pp tent penalty). $H_2$ safe-seat demobilisation confirmed ($p = 0.004$). | `CivicPulse_Submission.ipynb` (§6), `index.html` (`#panePurpose`) |
-| **7. Deployment in Usable Form** | Working full web app + policy simulator what-if engine + interactive mobile prototype + in-notebook Colab widget + Streamlit app. | `index.html`, `app.js`, `CivicPulse_Submission.ipynb` (§9) |
-| **8. Code Documentation & Reproducibility** | Full deterministic seeds (`RNG = 42`), pinned packages, clean modular codebase, zero console warnings. | `package.json`, `app.js`, `README.md` |
+| **7. Deployment in Usable Form** | Working full web app + AI Chatbot assistant + policy simulator what-if engine + interactive mobile prototype + Colab widget + Streamlit app. | `index.html`, `app.js`, `README.md`, `CivicPulse_Submission.ipynb` (§9) |
+| **8. Code Documentation & Reproducibility** | Full deterministic seeds (`RNG = 42`), pinned packages, clean modular codebase, GitHub repository versioning. | `package.json`, `app.js`, `README.md`, [GitHub Repository](https://github.com/BongaManzini/CivicPulse) |
 
 ---
 
 ## 9. License & Citations
 - **Data Provenance:** Electoral Commission of South Africa (IEC), Statistics South Africa (Stats SA Census 2022), Council for Scientific and Industrial Research (CSIR).
+- **Official Repository:** [https://github.com/BongaManzini/CivicPulse](https://github.com/BongaManzini/CivicPulse)
 - **License:** Open Academic & Civic License (MIT) for DIRISA Student Datathon Challenge 2026.

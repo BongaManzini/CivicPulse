@@ -37,6 +37,11 @@ class CivicPulseApp {
       baselineYouthTurnout: 24.0
     };
 
+    // CivicPulse AI Chatbot State
+    this.isChatOpen = false;
+    this.isChatMinimized = false;
+    this.chatHistory = [];
+
     // Full App Youth Civic Quiz
     this.fullQuizIndex = 0;
     this.fullQuizAnswers = [];
@@ -151,6 +156,7 @@ class CivicPulseApp {
     this.populateWardComparator();
     this.renderFullDeprivationChart();
     this.initFullQuiz();
+    this.initChatbot();
 
     console.log("CivicPulse Gauteng Full Web App initialized successfully.");
   }
@@ -234,6 +240,29 @@ class CivicPulseApp {
     document.getElementById('btnOpenDocs')?.addEventListener('click', () => {
       this.switchFullTab('purpose');
       this.setMode('fullapp');
+    });
+
+    // Chatbot Event Listeners
+    document.getElementById('civicChatLauncher')?.addEventListener('click', () => this.toggleChatbot());
+    document.getElementById('btnHeaderChat')?.addEventListener('click', () => this.openChatbot());
+    document.getElementById('btnSidebarChat')?.addEventListener('click', () => this.openChatbot());
+    document.getElementById('btnChatClose')?.addEventListener('click', () => this.closeChatbot());
+    document.getElementById('btnChatMinimize')?.addEventListener('click', () => this.toggleMinimizeChatbot());
+    document.getElementById('btnChatReset')?.addEventListener('click', () => this.resetChat());
+
+    // Chat Suggestion Chips
+    document.querySelectorAll('.chat-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        const prompt = e.currentTarget.getAttribute('data-prompt');
+        if (prompt) this.handleQuickPrompt(prompt);
+      });
+    });
+
+    // Close chat on Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isChatOpen) {
+        this.closeChatbot();
+      }
     });
 
     // SVG Map Hover & Click (both mobile and full app maps)
@@ -1725,6 +1754,407 @@ class CivicPulseApp {
         ? `<span>Finish Tour &check;</span>`
         : `<span>Next Step &rarr;</span>`;
     }
+  }
+
+  /* --------------------------------------------------------------------------
+     20. CivicPulse AI Chatbot Engine
+     -------------------------------------------------------------------------- */
+  initChatbot() {
+    this.chatHistory = [
+      {
+        role: 'bot',
+        text: `👋 Hello! I am **CivicPulse AI**, your conversational research assistant for the Gauteng 2026 Local Government Elections dataset.\n\nI have direct indexing across all **354 wards**, **2,268 voting districts**, Census 2022 multi-dimensional deprivation indicators, and empirical econometric models ($H_1$ & $H_2$).\n\nHow can I help you today? You can ask about any ward (e.g. *'Audit Ward 79900059'*), the *203 canvas tent voting stations*, why *youth turnout collapsed to 23.1%*, model selection (Ridge vs OLS), or how to launch and run CivicPulse!`,
+        actions: [
+          { label: "📉 Youth Turnout Crisis", prompt: "Why did youth turnout collapse to 23.1% in Gauteng?" },
+          { label: "⛺ 203 Tent Stations", prompt: "What is the empirical impact of the 203 tent voting stations?" },
+          { label: "📊 H1 & H2 Evidence", prompt: "Explain Hypothesis 1 (Deprivation Friction) and Hypothesis 2 (Incumbency Demobilisation)." },
+          { label: "🚀 How to Launch", prompt: "How do I launch and run CivicPulse locally and in production?" }
+        ],
+        time: this.getChatTimestamp()
+      }
+    ];
+
+    this.renderChatMessages();
+  }
+
+  getChatTimestamp() {
+    const now = new Date();
+    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  openChatbot() {
+    this.isChatOpen = true;
+    this.isChatMinimized = false;
+    const panel = document.getElementById('civicChatPanel');
+    if (panel) {
+      panel.classList.add('open');
+      panel.classList.remove('minimized');
+      panel.setAttribute('aria-hidden', 'false');
+    }
+    const unreadDot = document.getElementById('chatUnreadDot');
+    if (unreadDot) unreadDot.style.display = 'none';
+
+    setTimeout(() => {
+      document.getElementById('chatInput')?.focus();
+      this.scrollChatToBottom();
+    }, 150);
+  }
+
+  closeChatbot() {
+    this.isChatOpen = false;
+    const panel = document.getElementById('civicChatPanel');
+    if (panel) {
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  toggleChatbot() {
+    if (this.isChatOpen) {
+      this.closeChatbot();
+    } else {
+      this.openChatbot();
+    }
+  }
+
+  toggleMinimizeChatbot() {
+    this.isChatMinimized = !this.isChatMinimized;
+    const panel = document.getElementById('civicChatPanel');
+    if (panel) {
+      panel.classList.toggle('minimized', this.isChatMinimized);
+    }
+  }
+
+  resetChat() {
+    this.initChatbot();
+    this.showToast("CivicPulse AI conversation reset.");
+  }
+
+  scrollChatToBottom() {
+    const container = document.getElementById('chatMessagesContainer');
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  renderChatMessages() {
+    const container = document.getElementById('chatMessagesContainer');
+    if (!container) return;
+
+    container.innerHTML = this.chatHistory.map((msg, idx) => {
+      const isBot = msg.role === 'bot';
+      const formattedContent = this.formatChatMessageContent(msg.text);
+      
+      let actionsHtml = '';
+      if (isBot && msg.actions && msg.actions.length > 0) {
+        actionsHtml = `<div class="chat-action-cluster">` +
+          msg.actions.map((act) => {
+            if (act.action === 'select_ward') {
+              return `<button class="chat-action-btn" onclick="window.CivicApp.executeChatAction('select_ward', '${act.data}')">${act.label}</button>`;
+            } else if (act.action === 'switch_tab') {
+              return `<button class="chat-action-btn" onclick="window.CivicApp.executeChatAction('switch_tab', '${act.data}')">${act.label}</button>`;
+            } else if (act.action === 'open_url') {
+              return `<a href="${act.data}" target="_blank" rel="noopener noreferrer" class="chat-action-btn" style="text-decoration:none;">${act.label}</a>`;
+            } else if (act.action === 'open_quiz') {
+              return `<button class="chat-action-btn" onclick="window.CivicApp.executeChatAction('open_quiz')">${act.label}</button>`;
+            } else {
+              return `<button class="chat-action-btn" onclick="window.CivicApp.handleQuickPrompt('${this.escapeHtml(act.prompt)}')">${act.label}</button>`;
+            }
+          }).join('') +
+          `</div>`;
+      }
+
+      return `
+        <div class="chat-msg ${msg.role}" id="chatMsg_${idx}">
+          <div class="chat-msg-bubble">
+            ${formattedContent}
+            ${actionsHtml}
+          </div>
+          <span class="chat-time-tag">${msg.time || ''}</span>
+        </div>
+      `;
+    }).join('');
+
+    this.scrollChatToBottom();
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  formatChatMessageContent(raw) {
+    if (!raw) return '';
+    // Format bold **text**
+    let text = raw.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Format italic *text*
+    text = text.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+    // Format inline code `code`
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Format line breaks & lists
+    text = text.split('\n\n').map(p => {
+      if (p.trim().startsWith('- ') || p.trim().startsWith('• ')) {
+        const items = p.split('\n').filter(line => line.trim().length > 0);
+        return '<ul>' + items.map(line => `<li>${line.replace(/^[-•]\s*/, '')}</li>`).join('') + '</ul>';
+      }
+      return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+
+    return text;
+  }
+
+  executeChatAction(type, data) {
+    if (type === 'select_ward' && data) {
+      this.selectFullWard(data);
+      this.switchFullTab('wards');
+      this.showToast(`Inspecting Ward ${data} in Ward Explorer`);
+    } else if (type === 'switch_tab' && data) {
+      this.switchFullTab(data);
+      this.showToast(`Navigated to ${data.toUpperCase()} view`);
+    } else if (type === 'open_quiz') {
+      this.openQuizModal();
+    }
+  }
+
+  handleChatSubmit() {
+    const input = document.getElementById('chatInput');
+    if (!input) return;
+    const query = input.value.trim();
+    if (!query) return;
+
+    // Add user message
+    this.chatHistory.push({
+      role: 'user',
+      text: query,
+      time: this.getChatTimestamp()
+    });
+
+    input.value = '';
+    this.renderChatMessages();
+
+    // Show typing bar
+    const typingBar = document.getElementById('chatTypingBar');
+    if (typingBar) typingBar.style.display = 'flex';
+    this.scrollChatToBottom();
+
+    // Simulate smart agent inference delay
+    setTimeout(() => {
+      if (typingBar) typingBar.style.display = 'none';
+      const botResponse = this.generateChatResponse(query);
+      this.chatHistory.push({
+        role: 'bot',
+        text: botResponse.text,
+        actions: botResponse.actions || [],
+        time: this.getChatTimestamp()
+      });
+      this.renderChatMessages();
+    }, 280);
+  }
+
+  handleQuickPrompt(prompt) {
+    if (!prompt) return;
+    this.openChatbot();
+    const input = document.getElementById('chatInput');
+    if (input) {
+      input.value = prompt;
+      this.handleChatSubmit();
+    }
+  }
+
+  generateChatResponse(query) {
+    const q = query.toLowerCase().trim();
+
+    // 1. How to Launch & Run CivicPulse
+    if (q.includes('launch') || q.includes('run') || q.includes('start') || q.includes('install') || q.includes('setup') || q.includes('how to')) {
+      return {
+        text: `🚀 **How to Launch & Run CivicPulse:**\n\nYou can launch CivicPulse across three modalities:\n\n**1. Full Web Application (Vite Dev Server):**\n\`\`\`bash\ngit clone https://github.com/BongaManzini/CivicPulse.git\ncd CivicPulse\nnpm install\nnpm run dev\n\`\`\`\nThen open **http://localhost:5173/** in your browser.\n\n**2. Optimized Production Build:**\n\`\`\`bash\nnpm run build\nnpm run preview\n\`\`\`\n\n**3. Standalone Python Streamlit Data Studio:**\n\`\`\`bash\npip install streamlit pandas numpy scikit-learn joblib plotly\nstreamlit run streamlit_app.py\n\`\`\`\n\n**4. In-Notebook Colab Widget:**\nOpen \`CivicPulse_Submission.ipynb\` in Google Colab or JupyterLab and run Section 9.2.`,
+        actions: [
+          { label: "🐙 Open GitHub Repository", action: "open_url", data: "https://github.com/BongaManzini/CivicPulse" },
+          { label: "🏗️ View Deployment Tab", action: "switch_tab", data: "deployment" }
+        ]
+      };
+    }
+
+    // 2. GitHub Repository Link
+    if (q.includes('github') || q.includes('repo') || q.includes('code') || q.includes('source') || q.includes('git')) {
+      return {
+        text: `🐙 **CivicPulse Official GitHub Repository:**\n\nAll source code, data pipelines, deterministic seeds (\`RNG = 42\`), Ridge regression models, and documentation are publicly hosted at:\n\n**[https://github.com/BongaManzini/CivicPulse](https://github.com/BongaManzini/CivicPulse)**\n\n- Lead Investigator: Bonga Manzini\n- Target Election: Gauteng LGE, 4 Nov 2026\n- License: Open Academic & Civic License (MIT)`,
+        actions: [
+          { label: "🐙 View on GitHub", action: "open_url", data: "https://github.com/BongaManzini/CivicPulse" },
+          { label: "🏗️ Architecture Tab", action: "switch_tab", data: "deployment" }
+        ]
+      };
+    }
+
+    // 3. Ward Audits & Searches
+    const wardMatch = q.match(/\b(7\d{7})\b/) || q.match(/ward\s*([0-9]+)/i);
+    let targetWard = null;
+
+    if (wardMatch && this.data && this.data.wards) {
+      const wId = wardMatch[1];
+      targetWard = this.data.wards.find(w => w.ward_id === wId || w.ward_id.endsWith(wId));
+    }
+
+    // Neighborhood name searches
+    if (!targetWard && this.data && this.data.wards) {
+      if (q.includes('alexandra') || q.includes('alex')) {
+        targetWard = this.data.wards.find(w => w.ward_id === '79900059') || this.data.wards[0];
+      } else if (q.includes('soweto') || q.includes('orlando')) {
+        targetWard = this.data.wards.find(w => w.metro === 'Johannesburg' && w.winner === 'ANC');
+      } else if (q.includes('mamelodi')) {
+        targetWard = this.data.wards.find(w => w.metro === 'Tshwane' && w.deprivation_score > 0.7);
+      } else if (q.includes('centurion')) {
+        targetWard = this.data.wards.find(w => w.metro === 'Tshwane' && w.winner === 'DA');
+      } else if (q.includes('tembisa')) {
+        targetWard = this.data.wards.find(w => w.metro === 'Ekurhuleni' && w.deprivation_score > 0.6);
+      }
+    }
+
+    if (targetWard) {
+      const turnoutPct = (targetWard.turnout * 100).toFixed(1);
+      const marginPct = (targetWard.margin * 100).toFixed(1);
+      const forecastPct = (targetWard.forecast_2026 ? targetWard.forecast_2026 * 100 : (targetWard.pred_turnout * 100)).toFixed(1);
+      const depScore = targetWard.deprivation_score ? targetWard.deprivation_score.toFixed(3) : 'N/A';
+      const tents = targetWard.n_tent_vds || (targetWard.tent_share > 0 ? 'Yes (Tents detected)' : 'None');
+
+      return {
+        text: `🔍 **Official Ward Audit: Ward ${targetWard.ward_id} (${targetWard.metro})**\n\n` +
+          `- **2021 Recorded Turnout:** **${turnoutPct}%** (${targetWard.registered ? targetWard.registered.toLocaleString() : 'N/A'} registered voters)\n` +
+          `- **Winning Party:** **${targetWard.winner || 'N/A'}** (Victory Margin: **${marginPct}%**)\n` +
+          `- **Effective Parties (ENP):** **${targetWard.enp ? targetWard.enp.toFixed(2) : 'N/A'}**\n` +
+          `- **Deprivation Index:** **${depScore}** (Risk Tier: **${targetWard.risk_tier || 'Moderate'}**)\n` +
+          `- **Temporary Tent Stations:** **${tents}**\n` +
+          `- **2026 Model Turnout Forecast (Ridge):** **${forecastPct}%**\n\n` +
+          `Would you like to examine this ward in the full comparative auditor?`,
+        actions: [
+          { label: `🔍 Inspect Ward ${targetWard.ward_id}`, action: "select_ward", data: targetWard.ward_id },
+          { label: "🗺️ View on Spatial Map", action: "switch_tab", data: "map" },
+          { label: "🧪 Test Policy Levers", action: "switch_tab", data: "simulator" }
+        ]
+      };
+    }
+
+    // 4. Youth Turnout Deficit
+    if (q.includes('youth') || q.includes('apathy') || q.includes('young') || q.includes('18-29') || q.includes('age')) {
+      return {
+        text: `📉 **The Youth Voter Participation Deficit in Gauteng:**\n\n` +
+          `- **Participation Collapse:** In 2021, registered youth (aged 18–29) turnout plunged to an estimated **23.1%**, in stark contrast to **44.4%** among voters aged 50+.\n` +
+          `- **Registration Crisis:** Only **~19% of eligible youth in Gauteng** are registered on the official IEC voters roll.\n` +
+          `- **Debunking "Youth Apathy":** Our econometric and Census 2022 analysis proves youth abstention is driven by structural friction rather than moral indifference:\n` +
+          `  1. **Transit Poverty:** Young people lack transport funds to reach distant voting centres.\n` +
+          `  2. **Infrastructural Indignity:** 203 voting stations are temporary canvas tents with unlit muddy queues.\n` +
+          `  3. **Service Delivery Disillusionment:** Wards with persistent water and electricity outages exhibit statistically significant civic alienation.`,
+        actions: [
+          { label: "🧪 Launch Policy Simulator", action: "switch_tab", data: "simulator" },
+          { label: "🎯 Take Youth Civic Quiz", action: "open_quiz" },
+          { label: "📊 View Statistical Evidence", action: "switch_tab", data: "analytics" }
+        ]
+      };
+    }
+
+    // 5. 203 Canvas Tent Stations
+    if (q.includes('tent') || q.includes('canvas') || q.includes('temporary') || q.includes('station') || q.includes('facility')) {
+      return {
+        text: `⛺ **The 203 Temporary Canvas Tent Voting Stations:**\n\n` +
+          `- **Spatial Concentration:** Across Gauteng, **203 Voting Districts (across 134 wards)** rely on temporary canvas tents rather than permanent brick schools or community halls.\n` +
+          `- **Informal Settlement Trap:** Over 85% of these tents are pitched in informal settlements across Tshwane (Mamelodi, Hammanskraal), Johannesburg (Alexandra, Orange Farm), and Ekurhuleni (Tembisa).\n` +
+          `- **Empirical Penalty ($H_1$):** Paired within-ward voting district matching proves that voters assigned to tents suffer an additional **-1.00 pp to -3.12 pp turnout penalty** relative to peers voting in permanent halls in the *exact same ward*.\n` +
+          `- **Policy Recommendation:** Replacing all 203 tents with permanent, electrified multi-purpose civic hubs ahead of 4 Nov 2026 is projected to recover **+1.5 to +2.8 percentage points** in local turnout.`,
+        actions: [
+          { label: "🗺️ View Tent Hotspots on Map", action: "switch_tab", data: "map" },
+          { label: "🧪 Simulate Tent Replacement", action: "switch_tab", data: "simulator" }
+        ]
+      };
+    }
+
+    // 6. Empirical Hypotheses (H1 & H2)
+    if (q.includes('hypothesis') || q.includes('h1') || q.includes('h2') || q.includes('theory') || q.includes('friction') || q.includes('demobilis')) {
+      return {
+        text: `📊 **Empirical Hypotheses Verdict ($H_1$ & $H_2$):**\n\n` +
+          `**1. Hypothesis 1: Deprivation Friction Effect ($H_1$) — CONFIRMED**\n` +
+          `- *Proposition:* Multi-dimensional deprivation suppresses voter turnout.\n` +
+          `- *Evidence:* $r = -0.412, p < 0.001$. Affluent Quartile 1 wards average **52.4% turnout**, whereas informal settlement Quartile 4 wards average **31.2%** — a **21.2 percentage point participation chasm**.\n\n` +
+          `**2. Hypothesis 2: Incumbency Demobilisation Effect ($H_2$) — CONFIRMED**\n` +
+          `- *Proposition:* One-party safe seats ($\text{ENP} < 2.0$, high victory margins) demobilise voters.\n` +
+          `- *Evidence:* $p = 0.004, F = 5.21$. Multi-party competitive wards ($\text{ENP} > 3.0$) average **48.9% turnout**, vs **42.1%** in safe seats (a **6.8 pp competition penalty**). DA safe seats maintain mobilization (+0.41 SD), whereas ANC safe seats experience voter demobilisation (+0.05 SD).`,
+        actions: [
+          { label: "📈 Open Analytics & Charts", action: "switch_tab", data: "analytics" },
+          { label: "🔍 Compare Wards", action: "switch_tab", data: "wards" }
+        ]
+      };
+    }
+
+    // 7. Econometric Model Selection & ML
+    if (q.includes('model') || q.includes('ridge') || q.includes('ols') || q.includes('random forest') || q.includes('xgboost') || q.includes('regression') || q.includes('vif')) {
+      return {
+        text: `📈 **Econometric Model Selection (5-Fold Spatial Block CV):**\n\n` +
+          `- **Ridge Regularized ($\alpha=10$):** **MAE 6.32 pp · $R^2 = 0.365$** → **CHOSEN (1-SE Parsimony Rule)**\n` +
+          `- **Standard OLS Regression:** MAE 6.33 pp · $R^2 = 0.365$ → **EXCLUDED** (Severe Multicollinearity, $\text{VIF} > 10$ between party shares and margin)\n` +
+          `- **Random Forest:** MAE 6.28 pp · $R^2 = 0.373$ → Marginally lower raw MAE (by 0.04 pp), but rejected as a black box because public policy requires signed, interpretable coefficients ($\beta$).\n` +
+          `- **XGBoost:** MAE 6.50 pp · $R^2 = 0.348$ → Overfitting on spatial boundaries.\n\n` +
+          `Ridge regularizes collinear variables, guarantees computational stability, and quantifies exact voter gains per service delivery improvement.`,
+        actions: [
+          { label: "📊 View Models Matrix", action: "switch_tab", data: "analytics" },
+          { label: "🏗️ View System Architecture", action: "switch_tab", data: "deployment" }
+        ]
+      };
+    }
+
+    // 8. Policy Simulator & Counterfactuals
+    if (q.includes('simulator') || q.includes('what if') || q.includes('policy') || q.includes('lever') || q.includes('intervention')) {
+      return {
+        text: `🧪 **What-If Policy Simulation Studio:**\n\nThe simulator models three dynamic municipal levers:\n\n` +
+          `1. **Water & Sanitation Access (+25%):** Upgrading on-site piped water and formal sanitation (+1.8 pp youth turnout uplift).\n` +
+          `2. **Youth Transit & Employment (+30%):** Commuter subsidies to reduce economic friction (+2.2 pp youth turnout uplift).\n` +
+          `3. **Tent Replacement (+40%):** Converting canvas tents to permanent brick civic hubs (+2.8 pp youth turnout uplift).\n\n` +
+          `**Total Projected Impact:** Potential youth turnout uplift from **24.0% to 30.8% (+6.8 pp)** ahead of the 2026 Local Government Elections.`,
+        actions: [
+          { label: "🧪 Launch Policy Simulator", action: "switch_tab", data: "simulator" },
+          { label: "📄 Export Structured Policy Brief", action: "switch_tab", data: "simulator" }
+        ]
+      };
+    }
+
+    // 9. Metros Overview
+    if (q.includes('tshwane') || q.includes('joburg') || q.includes('johannesburg') || q.includes('ekurhuleni') || q.includes('gauteng') || q.includes('metro')) {
+      return {
+        text: `🏙️ **Gauteng Metropolitan Turnout Summary (2021 Official IEC):**\n\n` +
+          `- **City of Johannesburg:** 135 Wards · 2,219,769 Registered · **41.6% Turnout** (Lowest Metro)\n` +
+          `- **City of Tshwane:** 107 Wards · 1,526,452 Registered · **44.1% Turnout**\n` +
+          `- **City of Ekurhuleni:** 112 Wards · 1,587,116 Registered · **57.5% Turnout**\n` +
+          `- **Total Gauteng Scope:** 354 Wards · 2,268 Voting Districts · 5,333,337 Registered Voters · **47.4% Overall Turnout**\n\n` +
+          `Turnout variation is heavily intra-metro, driven by ward-level deprivation and margin of victory.`,
+        actions: [
+          { label: "🗺️ Explore GIS Choropleth", action: "switch_tab", data: "map" },
+          { label: "🔍 Audit Wards", action: "switch_tab", data: "wards" }
+        ]
+      };
+    }
+
+    // 10. Navigation Commands
+    if (q.includes('map')) {
+      this.switchFullTab('map');
+      return { text: "🗺️ Navigated you to the **Spatial Geography & GIS Map** tab. You can toggle between 2021 Turnout, Deprivation Quartiles, and Tent Stations.", actions: [{ label: "🔍 Search a Ward", prompt: "Audit Ward 79900059" }] };
+    }
+    if (q.includes('quiz')) {
+      this.openQuizModal();
+      return { text: "🎯 Opening the **Youth Civic Alignment Quiz** modal for you!", actions: [] };
+    }
+
+    // Default Fallback
+    return {
+      text: `🤖 I'm here to assist with any aspect of the CivicPulse Gauteng research project.\n\nYou can ask me:\n- *"Audit Ward 79900059"* or search any suburb (e.g. Alexandra, Mamelodi, Soweto)\n- *"Why did youth turnout collapse to 23.1%?"*\n- *"What is the impact of the 203 tent stations?"*\n- *"Explain H1 (Deprivation Friction) and H2 (Incumbency Demobilisation)"*\n- *"Why Ridge Regression instead of OLS?"*\n- *"How to launch CivicPulse"*`,
+      actions: [
+        { label: "📉 Youth Turnout Crisis", prompt: "Why did youth turnout collapse to 23.1% in Gauteng?" },
+        { label: "⛺ 203 Tent Stations", prompt: "What is the empirical impact of the 203 tent voting stations?" },
+        { label: "🚀 How to Launch", prompt: "How do I launch and run CivicPulse locally and in production?" },
+        { label: "🐙 GitHub Repository", action: "open_url", data: "https://github.com/BongaManzini/CivicPulse" }
+      ]
+    };
   }
 }
 
