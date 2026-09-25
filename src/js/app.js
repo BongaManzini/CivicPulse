@@ -20,10 +20,13 @@ class CivicPulseApp {
     this.activeRiskFilter = 'all';
 
     // Full App Filters & State
-    this.fullFilterMetro = 'all';
-    this.fullFilterRisk = 'all';
+    this.selectedProvince = 'Gauteng';
+    this.fullMetroFilter = 'all';
+    this.fullRiskFilter = 'all';
+    this.wardSearchQuery = '';
     this.compWardAId = '79900059';
     this.compWardBId = '79700001';
+    this.provincesData = this.getProvincesData();
 
     // Policy Simulator State
     this.simState = {
@@ -151,6 +154,7 @@ class CivicPulseApp {
     this.populateBoardSlots();
 
     // Full App Initializers
+    this.populateMetroDropdownForProvince(this.selectedProvince);
     this.populateFullWardsDropdown();
     this.updateFullWardCard();
     this.populateWardComparator();
@@ -173,6 +177,15 @@ class CivicPulseApp {
     } catch (err) {
       console.warn("Could not load civicpulse_data.json, using fallback data:", err);
       this.data = this.getFallbackData();
+    }
+
+    // Synchronize Gauteng wards in provincesData
+    if (this.provincesData && this.provincesData['Gauteng'] && this.data && this.data.wards) {
+      this.provincesData['Gauteng'].wards = this.data.wards.map(w => ({
+        ...w,
+        province: 'Gauteng',
+        locality: w.locality || (w.metro === 'Tshwane' ? `Tshwane Ward ${w.ward_num || w.ward_id.slice(-2)}` : w.metro === 'Johannesburg' ? `Joburg Ward ${w.ward_num || w.ward_id.slice(-2)}` : `Ekurhuleni Ward ${w.ward_num || w.ward_id.slice(-2)}`)
+      }));
     }
   }
 
@@ -1119,7 +1132,7 @@ class CivicPulseApp {
 
   handleOmniSearch(query) {
     const dropdown = document.getElementById('omniDropdown');
-    if (!dropdown || !this.data) return;
+    if (!dropdown) return;
 
     const q = (query || '').trim().toLowerCase();
     if (q.length < 2) {
@@ -1128,17 +1141,19 @@ class CivicPulseApp {
       return;
     }
 
-    const wards = this.data.wards || [];
+    const wards = this.getAllWards();
     const matches = wards.filter(w => {
       const wid = String(w.ward_id || '').toLowerCase();
       const wnum = String(w.ward_num || '').toLowerCase();
       const metro = String(w.metro || '').toLowerCase();
+      const prov = String(w.province || '').toLowerCase();
+      const loc = String(w.locality || '').toLowerCase();
       const winner = String(w.winner || '').toLowerCase();
-      return wid.includes(q) || wnum === q || metro.includes(q) || winner.includes(q);
+      return wid.includes(q) || wnum === q || metro.includes(q) || prov.includes(q) || loc.includes(q) || winner.includes(q);
     }).slice(0, 8);
 
     if (matches.length === 0) {
-      dropdown.innerHTML = `<div class="omni-no-results" style="padding:0.75rem 1rem; color:var(--color-text-subtle); font-size:0.82rem;">No wards found matching "${query}"</div>`;
+      dropdown.innerHTML = `<div class="omni-no-results" style="padding:0.75rem 1rem; color:var(--text-muted); font-size:0.82rem;">No wards found matching "${query}"</div>`;
       dropdown.classList.add('show');
       return;
     }
@@ -1146,11 +1161,11 @@ class CivicPulseApp {
     dropdown.innerHTML = matches.map(w => `
       <div class="omni-item" onclick="window.CivicApp.selectWardAndInspect('${w.ward_id}');">
         <div class="omni-left">
-          <span class="omni-ward-id">Ward ${w.ward_id} (Ward ${w.ward_num || 'N/A'})</span>
-          <span class="omni-metro">City of ${w.metro} · Risk: ${w.risk_tier || 'Moderate'}</span>
+          <span class="omni-ward-id">Ward ${w.ward_id} (${w.province || 'GP'})</span>
+          <span class="omni-metro">${w.metro}${w.locality ? ' · ' + w.locality : ''}</span>
         </div>
         <div class="omni-right">
-          <span class="badge-mini ${w.winner === 'DA' ? 'badge-blue' : w.winner === 'ANC' ? 'badge-amber' : w.winner === 'EFF' ? 'badge-red' : 'badge-green'}">${w.winner}</span>
+          <span class="winner-badge party-${(w.winner || 'da').toLowerCase()}">${w.winner}</span>
           <span class="omni-turnout">${(w.turnout * 100).toFixed(1)}%</span>
         </div>
       </div>
@@ -1160,6 +1175,10 @@ class CivicPulseApp {
   }
 
   selectWardAndInspect(wardId) {
+    const ward = this.getWardById(wardId);
+    if (ward && ward.province && ward.province !== this.selectedProvince) {
+      this.setProvince(ward.province);
+    }
     this.selectedWardId = wardId;
     this.activeWardId = wardId;
 
@@ -1176,44 +1195,1188 @@ class CivicPulseApp {
     const dropdown = document.getElementById('omniDropdown');
     if (dropdown) dropdown.classList.remove('show');
 
-    const searchInput = document.getElementById('fullSearchWards');
+    const searchInput = document.getElementById('wardFilterSearch');
     if (searchInput) searchInput.value = '';
 
-    this.showToast(`Inspecting Ward ${wardId}`);
+    this.showToast(`Inspecting Ward ${wardId} (${ward ? ward.metro : ''})`);
+  }
+
+  /* --------------------------------------------------------------------------
+     Multi-Province Electoral Data Store & Explorer Methods
+     -------------------------------------------------------------------------- */
+  getProvincesData() {
+    return {
+      'Gauteng': {
+        name: 'Gauteng',
+        code: 'GP',
+        capital: 'Johannesburg / Pretoria',
+        description: 'Economic heartland · 5 Metros & Districts · High urban density',
+        registered: 6241838,
+        turnout: 0.4743,
+        forecast: 0.458,
+        forecast_lo: 0.412,
+        forecast_hi: 0.504,
+        tent_vds: 203,
+        metros: ['City of Tshwane', 'City of Johannesburg', 'City of Ekurhuleni', 'Sedibeng', 'West Rand'],
+        wards: [
+          {
+            ward_id: '79900059',
+            province: 'Gauteng',
+            metro: 'City of Tshwane',
+            locality: 'Hammanskraal West / Temba',
+            ward_num: 59,
+            winner: 'DA',
+            turnout: 0.294,
+            margin: 0.34,
+            enp: 3.15,
+            ward_gap_pp: -17.2,
+            risk_tier: 'High risk',
+            forecast_2026: 0.285,
+            forecast_lo: 0.230,
+            forecast_hi: 0.340,
+            deprivation_score: 0.82,
+            registered: 18920,
+            tent_share: 0.33,
+            top_vds: [
+              { VotingDistrict: 32910230, station: 'HAMMANSKRAAL COMMUNITY HALL', station_type: 'Community Hall', registered: 4120, turnout: 0.312, tent: 0 },
+              { VotingDistrict: 32910331, station: 'TEMBA PRIMARY SCHOOL', station_type: 'School', registered: 3850, turnout: 0.298, tent: 0 },
+              { VotingDistrict: 32910375, station: 'KANANA INFORMAL SETTLEMENT TENT', station_type: 'Canvas Tent', registered: 2640, turnout: 0.245, tent: 1 },
+              { VotingDistrict: 32910408, station: 'ST PETER APOSTOLIC CHURCH', station_type: 'Church', registered: 3410, turnout: 0.320, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '79800065',
+            province: 'Gauteng',
+            metro: 'City of Johannesburg',
+            locality: 'Soweto / Meadowlands West',
+            ward_num: 65,
+            winner: 'ANC',
+            turnout: 0.313,
+            margin: 0.22,
+            enp: 3.82,
+            ward_gap_pp: -16.4,
+            risk_tier: 'High risk',
+            forecast_2026: 0.301,
+            forecast_lo: 0.245,
+            forecast_hi: 0.355,
+            deprivation_score: 0.79,
+            registered: 21450,
+            tent_share: 0.25,
+            top_vds: [
+              { VotingDistrict: 32810115, station: 'MEADOWLANDS COMMUNITY HALL', station_type: 'Community Hall', registered: 4210, turnout: 0.325, tent: 0 },
+              { VotingDistrict: 32810126, station: 'THABO SECONDARY SCHOOL', station_type: 'School', registered: 3890, turnout: 0.310, tent: 0 },
+              { VotingDistrict: 32810137, station: 'NDOVELA OPEN GROUNDS TENT', station_type: 'Canvas Tent', registered: 2450, turnout: 0.278, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '79700001',
+            province: 'Gauteng',
+            metro: 'City of Ekurhuleni',
+            locality: 'Midstream / Olifantsfontein',
+            ward_num: 1,
+            winner: 'DA',
+            turnout: 0.713,
+            margin: 0.35,
+            enp: 2.34,
+            ward_gap_pp: 20.9,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.699,
+            forecast_lo: 0.647,
+            forecast_hi: 0.751,
+            deprivation_score: 0.18,
+            registered: 16935,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 32910230, station: 'OLIFANTSFONTEIN COMMUNITY HALL', station_type: 'Community Hall', registered: 1982, turnout: 0.532, tent: 0 },
+              { VotingDistrict: 32910331, station: 'MIDSTREAM COLLEGE', station_type: 'School', registered: 3720, turnout: 0.789, tent: 0 },
+              { VotingDistrict: 32910375, station: 'HOSANNA KINGDOM CHURCH', station_type: 'Church', registered: 2410, turnout: 0.745, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'Western Cape': {
+        name: 'Western Cape',
+        code: 'WC',
+        capital: 'Cape Town',
+        description: 'Highest provincial turnout in 2021 · Dense metro vs rural agricultural fringe',
+        registered: 3312450,
+        turnout: 0.5732,
+        forecast: 0.556,
+        forecast_lo: 0.510,
+        forecast_hi: 0.602,
+        tent_vds: 38,
+        metros: ['City of Cape Town', 'Stellenbosch', 'Drakenstein', 'George', 'Overstrand'],
+        wards: [
+          {
+            ward_id: '19100095',
+            province: 'Western Cape',
+            metro: 'City of Cape Town',
+            locality: 'Khayelitsha Site B / Nonqubela',
+            ward_num: 95,
+            winner: 'ANC',
+            turnout: 0.382,
+            margin: 0.28,
+            enp: 2.85,
+            ward_gap_pp: -19.1,
+            risk_tier: 'High risk',
+            forecast_2026: 0.365,
+            forecast_lo: 0.310,
+            forecast_hi: 0.420,
+            deprivation_score: 0.74,
+            registered: 19450,
+            tent_share: 0.25,
+            top_vds: [
+              { VotingDistrict: 97100012, station: 'MATTHEW GONIWE HIGH SCHOOL', station_type: 'School', registered: 2840, turnout: 0.395, tent: 0 },
+              { VotingDistrict: 97100023, station: 'SIVUYILE COMMUNITY COLLEGE', station_type: 'College', registered: 3120, turnout: 0.372, tent: 0 },
+              { VotingDistrict: 97100034, station: 'KHAYELITSHA SPORTS GROUNDS TENT', station_type: 'Canvas Tent', registered: 2650, turnout: 0.341, tent: 1 },
+              { VotingDistrict: 97100045, station: 'SITE B COMMUNITY CLINIC HALL', station_type: 'Clinic/Hall', registered: 3410, turnout: 0.412, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '19100077',
+            province: 'Western Cape',
+            metro: 'City of Cape Town',
+            locality: 'Mitchells Plain / Tafelsig',
+            ward_num: 77,
+            winner: 'DA',
+            turnout: 0.445,
+            margin: 0.22,
+            enp: 3.42,
+            ward_gap_pp: -12.8,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.431,
+            forecast_lo: 0.380,
+            forecast_hi: 0.482,
+            deprivation_score: 0.58,
+            registered: 21300,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 97110056, station: 'TAFELSIG COMMUNITY CENTRE', station_type: 'Centre', registered: 3890, turnout: 0.452, tent: 0 },
+              { VotingDistrict: 97110067, station: 'YELLOWWOOD PRIMARY SCHOOL', station_type: 'School', registered: 3450, turnout: 0.438, tent: 0 },
+              { VotingDistrict: 97110078, station: 'MITCHELLS PLAIN LIBRARY HALL', station_type: 'Library', registered: 4120, turnout: 0.461, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '19100115',
+            province: 'Western Cape',
+            metro: 'City of Cape Town',
+            locality: 'Sea Point / Camps Bay / Clifton',
+            ward_num: 115,
+            winner: 'DA',
+            turnout: 0.684,
+            margin: 0.62,
+            enp: 1.84,
+            ward_gap_pp: 11.1,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.672,
+            forecast_lo: 0.620,
+            forecast_hi: 0.724,
+            deprivation_score: 0.12,
+            registered: 18920,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 97120011, station: 'SEA POINT CIVIC CENTRE', station_type: 'Civic Centre', registered: 4210, turnout: 0.702, tent: 0 },
+              { VotingDistrict: 97120022, station: 'CAMPS BAY HIGH SCHOOL', station_type: 'School', registered: 3680, turnout: 0.675, tent: 0 },
+              { VotingDistrict: 97120033, station: 'GREEN POINT PRIMARY SCHOOL', station_type: 'School', registered: 3950, turnout: 0.689, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '19100057',
+            province: 'Western Cape',
+            metro: 'City of Cape Town',
+            locality: 'Rondebosch / Rosebank',
+            ward_num: 57,
+            winner: 'DA',
+            turnout: 0.712,
+            margin: 0.58,
+            enp: 2.14,
+            ward_gap_pp: 13.9,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.701,
+            forecast_lo: 0.650,
+            forecast_hi: 0.752,
+            deprivation_score: 0.15,
+            registered: 16840,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 97130010, station: 'RONDEBOSCH BOYS PREPARATORY', station_type: 'School', registered: 4100, turnout: 0.724, tent: 0 },
+              { VotingDistrict: 97130021, station: 'ST THOMAS ANGLICAN CHURCH HALL', station_type: 'Church', registered: 3820, turnout: 0.698, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '19100040',
+            province: 'Western Cape',
+            metro: 'City of Cape Town',
+            locality: 'Gugulethu NY1 / Kanana',
+            ward_num: 40,
+            winner: 'ANC',
+            turnout: 0.416,
+            margin: 0.31,
+            enp: 2.92,
+            ward_gap_pp: -15.7,
+            risk_tier: 'High risk',
+            forecast_2026: 0.398,
+            forecast_lo: 0.345,
+            forecast_hi: 0.451,
+            deprivation_score: 0.71,
+            registered: 17980,
+            tent_share: 0.20,
+            top_vds: [
+              { VotingDistrict: 97140015, station: 'GUGULETHU COMPREHENSIVE SCHOOL', station_type: 'School', registered: 3500, turnout: 0.428, tent: 0 },
+              { VotingDistrict: 97140026, station: 'IKWEZI COMMUNITY HALL', station_type: 'Community Hall', registered: 3200, turnout: 0.405, tent: 0 },
+              { VotingDistrict: 97140037, station: 'KANANA INFORMAL SETTLEMENT TENT', station_type: 'Canvas Tent', registered: 2100, turnout: 0.375, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '10204005',
+            province: 'Western Cape',
+            metro: 'Stellenbosch',
+            locality: 'Stellenbosch Central / Idas Valley',
+            ward_num: 5,
+            winner: 'DA',
+            turnout: 0.621,
+            margin: 0.45,
+            enp: 2.38,
+            ward_gap_pp: 4.8,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.608,
+            forecast_lo: 0.555,
+            forecast_hi: 0.661,
+            deprivation_score: 0.24,
+            registered: 15400,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 97150012, station: 'STELLENBOSCH TOWN HALL', station_type: 'Town Hall', registered: 4500, turnout: 0.642, tent: 0 },
+              { VotingDistrict: 97150023, station: 'IDAS VALLEY LIBRARY', station_type: 'Library', registered: 3600, turnout: 0.598, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '10204012',
+            province: 'Western Cape',
+            metro: 'Stellenbosch',
+            locality: 'Kayamandi Zone 14',
+            ward_num: 12,
+            winner: 'ANC',
+            turnout: 0.398,
+            margin: 0.34,
+            enp: 2.74,
+            ward_gap_pp: -17.5,
+            risk_tier: 'High risk',
+            forecast_2026: 0.381,
+            forecast_lo: 0.330,
+            forecast_hi: 0.432,
+            deprivation_score: 0.79,
+            registered: 14800,
+            tent_share: 0.25,
+            top_vds: [
+              { VotingDistrict: 97160018, station: 'KAYAMANDI SECONDARY SCHOOL', station_type: 'School', registered: 3900, turnout: 0.412, tent: 0 },
+              { VotingDistrict: 97160029, station: 'LEGACY CENTRE TEMPORARY TENT', station_type: 'Canvas Tent', registered: 2200, turnout: 0.354, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '10203008',
+            province: 'Western Cape',
+            metro: 'Drakenstein',
+            locality: 'Paarl East / Mbekweni',
+            ward_num: 8,
+            winner: 'ANC',
+            turnout: 0.421,
+            margin: 0.29,
+            enp: 3.12,
+            ward_gap_pp: -15.2,
+            risk_tier: 'High risk',
+            forecast_2026: 0.405,
+            forecast_lo: 0.352,
+            forecast_hi: 0.458,
+            deprivation_score: 0.69,
+            registered: 16100,
+            tent_share: 0.15,
+            top_vds: [
+              { VotingDistrict: 97170014, station: 'MBEKWENI COMMUNITY HALL', station_type: 'Community Hall', registered: 4200, turnout: 0.431, tent: 0 },
+              { VotingDistrict: 97170025, station: 'LANGABUYA PRIMARY SCHOOL', station_type: 'School', registered: 3800, turnout: 0.418, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '10404018',
+            province: 'Western Cape',
+            metro: 'George',
+            locality: 'George CBD / Blanco',
+            ward_num: 18,
+            winner: 'DA',
+            turnout: 0.594,
+            margin: 0.39,
+            enp: 2.62,
+            ward_gap_pp: 2.1,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.582,
+            forecast_lo: 0.530,
+            forecast_hi: 0.634,
+            deprivation_score: 0.32,
+            registered: 17500,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 97180010, station: 'GEORGE CIVIC CENTRE', station_type: 'Civic Centre', registered: 4800, turnout: 0.612, tent: 0 },
+              { VotingDistrict: 97180021, station: 'BLANCO COMMUNITY HALL', station_type: 'Community Hall', registered: 3900, turnout: 0.578, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'KwaZulu-Natal': {
+        name: 'KwaZulu-Natal',
+        code: 'KZN',
+        capital: 'Pietermaritzburg',
+        description: 'Deeply competitive tripartite arena (ANC, IFP, MKP, DA) · Severe rural topography and 142 tent stations',
+        registered: 5742110,
+        turnout: 0.5184,
+        forecast: 0.492,
+        forecast_lo: 0.445,
+        forecast_hi: 0.539,
+        tent_vds: 142,
+        metros: ['eThekwini Metro', 'Msunduzi', 'uMhlathuze', 'Newcastle', 'Ray Nkonyeni'],
+        wards: [
+          {
+            ward_id: '59500082',
+            province: 'KwaZulu-Natal',
+            metro: 'eThekwini Metro',
+            locality: 'Umlazi Section D & E',
+            ward_num: 82,
+            winner: 'ANC',
+            turnout: 0.412,
+            margin: 0.18,
+            enp: 3.65,
+            ward_gap_pp: -10.6,
+            risk_tier: 'High risk',
+            forecast_2026: 0.388,
+            forecast_lo: 0.332,
+            forecast_hi: 0.444,
+            deprivation_score: 0.76,
+            registered: 22400,
+            tent_share: 0.28,
+            top_vds: [
+              { VotingDistrict: 43370012, station: 'UMLAZI COMMERCIAL HIGH', station_type: 'School', registered: 3950, turnout: 0.428, tent: 0 },
+              { VotingDistrict: 43370023, station: 'MENZI HIGH SCHOOL', station_type: 'School', registered: 3420, turnout: 0.405, tent: 0 },
+              { VotingDistrict: 43370034, station: 'SECTION E OPEN GROUNDS TENT', station_type: 'Canvas Tent', registered: 2890, turnout: 0.368, tent: 1 },
+              { VotingDistrict: 43370045, station: 'ZWELIBANZI HIGH SCHOOL', station_type: 'School', registered: 3710, turnout: 0.435, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '59500045',
+            province: 'KwaZulu-Natal',
+            metro: 'eThekwini Metro',
+            locality: 'KwaMashu A-Section',
+            ward_num: 45,
+            winner: 'IFP',
+            turnout: 0.438,
+            margin: 0.12,
+            enp: 3.88,
+            ward_gap_pp: -8.0,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.415,
+            forecast_lo: 0.360,
+            forecast_hi: 0.470,
+            deprivation_score: 0.72,
+            registered: 19800,
+            tent_share: 0.20,
+            top_vds: [
+              { VotingDistrict: 43380018, station: 'KWAMASHU ROTARY STADIUM HALL', station_type: 'Stadium Hall', registered: 4120, turnout: 0.455, tent: 0 },
+              { VotingDistrict: 43380029, station: 'JOHN LANGALIBALELE DUBE HIGH', station_type: 'School', registered: 3650, turnout: 0.432, tent: 0 },
+              { VotingDistrict: 43380030, station: 'HOSTEL OPEN GROUNDS TENT', station_type: 'Canvas Tent', registered: 2450, turnout: 0.384, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '59500028',
+            province: 'KwaZulu-Natal',
+            metro: 'eThekwini Metro',
+            locality: 'Durban Central / South Beach',
+            ward_num: 28,
+            winner: 'DA',
+            turnout: 0.485,
+            margin: 0.24,
+            enp: 3.45,
+            ward_gap_pp: -3.3,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.468,
+            forecast_lo: 0.415,
+            forecast_hi: 0.521,
+            deprivation_score: 0.42,
+            registered: 24500,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 43390014, station: 'DURBAN CITY HALL', station_type: 'City Hall', registered: 5200, turnout: 0.495, tent: 0 },
+              { VotingDistrict: 43390025, station: 'ADDINGTON PRIMARY SCHOOL', station_type: 'School', registered: 4300, turnout: 0.478, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '59500070',
+            province: 'KwaZulu-Natal',
+            metro: 'eThekwini Metro',
+            locality: 'Chatsworth Unit 3',
+            ward_num: 70,
+            winner: 'DA',
+            turnout: 0.542,
+            margin: 0.38,
+            enp: 2.82,
+            ward_gap_pp: 2.4,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.528,
+            forecast_lo: 0.475,
+            forecast_hi: 0.581,
+            deprivation_score: 0.38,
+            registered: 18200,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 43400010, station: 'CHATSWORTH YOUTH CENTRE', station_type: 'Youth Centre', registered: 4100, turnout: 0.558, tent: 0 },
+              { VotingDistrict: 43400021, station: 'WESLEY PRIMARY SCHOOL', station_type: 'School', registered: 3750, turnout: 0.532, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '52205022',
+            province: 'KwaZulu-Natal',
+            metro: 'Msunduzi',
+            locality: 'Edendale / Plessislaer',
+            ward_num: 22,
+            winner: 'ANC',
+            turnout: 0.442,
+            margin: 0.25,
+            enp: 3.10,
+            ward_gap_pp: -7.6,
+            risk_tier: 'High risk',
+            forecast_2026: 0.421,
+            forecast_lo: 0.368,
+            forecast_hi: 0.474,
+            deprivation_score: 0.71,
+            registered: 17600,
+            tent_share: 0.20,
+            top_vds: [
+              { VotingDistrict: 43410015, station: 'EDENDALE LAY ECUMENICAL CENTRE', station_type: 'Ecumenical Centre', registered: 4100, turnout: 0.455, tent: 0 },
+              { VotingDistrict: 43410026, station: 'SITHEMBILE PRIMARY SCHOOL', station_type: 'School', registered: 3600, turnout: 0.438, tent: 0 },
+              { VotingDistrict: 43410037, station: 'VULINDLELA TEMPORARY TENT', station_type: 'Canvas Tent', registered: 2100, turnout: 0.395, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '52802003',
+            province: 'KwaZulu-Natal',
+            metro: 'uMhlathuze',
+            locality: 'Richards Bay / Empangeni Central',
+            ward_num: 3,
+            winner: 'IFP',
+            turnout: 0.568,
+            margin: 0.22,
+            enp: 3.25,
+            ward_gap_pp: 5.0,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.551,
+            forecast_lo: 0.498,
+            forecast_hi: 0.604,
+            deprivation_score: 0.34,
+            registered: 19100,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 43420018, station: 'RICHARDS BAY CIVIC CENTRE', station_type: 'Civic Centre', registered: 5100, turnout: 0.585, tent: 0 },
+              { VotingDistrict: 43420029, station: 'EMPANGENI HIGH SCHOOL', station_type: 'School', registered: 4300, turnout: 0.552, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'Eastern Cape': {
+        name: 'Eastern Cape',
+        code: 'EC',
+        capital: 'Bhisho',
+        description: 'Vast rural municipal footprints · Deep historical loyalty challenged by service delivery decay',
+        registered: 3438900,
+        turnout: 0.4862,
+        forecast: 0.461,
+        forecast_lo: 0.415,
+        forecast_hi: 0.507,
+        tent_vds: 118,
+        metros: ['Nelson Mandela Bay', 'Buffalo City', 'King Sabata Dalindyebo', 'Enoch Mgijima'],
+        wards: [
+          {
+            ward_id: '29300060',
+            province: 'Eastern Cape',
+            metro: 'Nelson Mandela Bay',
+            locality: 'Gqeberha Central / Summerstrand',
+            ward_num: 60,
+            winner: 'DA',
+            turnout: 0.612,
+            margin: 0.48,
+            enp: 2.45,
+            ward_gap_pp: 12.6,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.598,
+            forecast_lo: 0.545,
+            forecast_hi: 0.651,
+            deprivation_score: 0.22,
+            registered: 18500,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 23100012, station: 'SUMMERSTRAND COMMUNITY HALL', station_type: 'Hall', registered: 4500, turnout: 0.635, tent: 0 },
+              { VotingDistrict: 23100023, station: 'PE BOWLING CLUB', station_type: 'Sports Club', registered: 3900, turnout: 0.598, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '29300025',
+            province: 'Eastern Cape',
+            metro: 'Nelson Mandela Bay',
+            locality: 'Motherwell NU2',
+            ward_num: 25,
+            winner: 'ANC',
+            turnout: 0.428,
+            margin: 0.32,
+            enp: 3.18,
+            ward_gap_pp: -5.8,
+            risk_tier: 'High risk',
+            forecast_2026: 0.405,
+            forecast_lo: 0.352,
+            forecast_hi: 0.458,
+            deprivation_score: 0.75,
+            registered: 19800,
+            tent_share: 0.22,
+            top_vds: [
+              { VotingDistrict: 23110018, station: 'MOTHERWELL COMMUNITY CENTRE', station_type: 'Community Hall', registered: 4300, turnout: 0.442, tent: 0 },
+              { VotingDistrict: 23110029, station: 'IKHWEZELIHLE PRIMARY SCHOOL', station_type: 'School', registered: 3800, turnout: 0.425, tent: 0 },
+              { VotingDistrict: 23110030, station: 'NU2 OPEN GROUND TENT', station_type: 'Canvas Tent', registered: 2100, turnout: 0.385, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '29200012',
+            province: 'Eastern Cape',
+            metro: 'Buffalo City',
+            locality: 'Mdantsane Unit 1',
+            ward_num: 12,
+            winner: 'ANC',
+            turnout: 0.435,
+            margin: 0.35,
+            enp: 2.88,
+            ward_gap_pp: -5.1,
+            risk_tier: 'High risk',
+            forecast_2026: 0.412,
+            forecast_lo: 0.360,
+            forecast_hi: 0.464,
+            deprivation_score: 0.72,
+            registered: 17400,
+            tent_share: 0.18,
+            top_vds: [
+              { VotingDistrict: 23120015, station: 'MDANTSANE INDOOR SPORTS CENTRE', station_type: 'Sports Centre', registered: 4100, turnout: 0.451, tent: 0 },
+              { VotingDistrict: 23120026, station: 'LIZWE HIGH SCHOOL', station_type: 'School', registered: 3600, turnout: 0.429, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '21507008',
+            province: 'Eastern Cape',
+            metro: 'King Sabata Dalindyebo',
+            locality: 'Mthatha Central',
+            ward_num: 8,
+            winner: 'UDM',
+            turnout: 0.462,
+            margin: 0.15,
+            enp: 3.42,
+            ward_gap_pp: -2.4,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.441,
+            forecast_lo: 0.388,
+            forecast_hi: 0.494,
+            deprivation_score: 0.65,
+            registered: 16900,
+            tent_share: 0.15,
+            top_vds: [
+              { VotingDistrict: 23130019, station: 'MTHATHA TOWN HALL', station_type: 'Town Hall', registered: 4600, turnout: 0.485, tent: 0 },
+              { VotingDistrict: 23130020, station: 'ZIMBANE COMMUNITY CLINIC TENT', station_type: 'Canvas Tent', registered: 2200, turnout: 0.415, tent: 1 }
+            ]
+          }
+        ]
+      },
+      'Free State': {
+        name: 'Free State',
+        code: 'FS',
+        capital: 'Bloemfontein',
+        description: 'Mangaung Metro challenges · Coal mining belt transition & agricultural towns',
+        registered: 1450200,
+        turnout: 0.4491,
+        forecast: 0.432,
+        forecast_lo: 0.388,
+        forecast_hi: 0.476,
+        tent_vds: 64,
+        metros: ['Mangaung Metro', 'Matjhabeng', 'Maluti-a-Phofung', 'Metsimaholo'],
+        wards: [
+          {
+            ward_id: '49400020',
+            province: 'Free State',
+            metro: 'Mangaung Metro',
+            locality: 'Bloemfontein CBD / Westdene',
+            ward_num: 20,
+            winner: 'DA',
+            turnout: 0.584,
+            margin: 0.36,
+            enp: 2.75,
+            ward_gap_pp: 13.5,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.571,
+            forecast_lo: 0.518,
+            forecast_hi: 0.624,
+            deprivation_score: 0.28,
+            registered: 16800,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 33100014, station: 'BLOEMFONTEIN CITY HALL', station_type: 'City Hall', registered: 4300, turnout: 0.605, tent: 0 },
+              { VotingDistrict: 33100025, station: 'EUNICE HIGH SCHOOL', station_type: 'School', registered: 3900, turnout: 0.572, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '49400004',
+            province: 'Free State',
+            metro: 'Mangaung Metro',
+            locality: 'Botshabelo Section C',
+            ward_num: 4,
+            winner: 'ANC',
+            turnout: 0.395,
+            margin: 0.41,
+            enp: 2.55,
+            ward_gap_pp: -5.4,
+            risk_tier: 'High risk',
+            forecast_2026: 0.378,
+            forecast_lo: 0.325,
+            forecast_hi: 0.431,
+            deprivation_score: 0.81,
+            registered: 18200,
+            tent_share: 0.25,
+            top_vds: [
+              { VotingDistrict: 33110010, station: 'BOTSHABELO COMMUNITY ARENA', station_type: 'Arena', registered: 4100, turnout: 0.412, tent: 0 },
+              { VotingDistrict: 33110021, station: 'SECTION C PRIMARY SCHOOL', station_type: 'School', registered: 3600, turnout: 0.392, tent: 0 },
+              { VotingDistrict: 33110032, station: 'EXT 5 PARK TENT', station_type: 'Canvas Tent', registered: 2100, turnout: 0.354, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '41804015',
+            province: 'Free State',
+            metro: 'Matjhabeng',
+            locality: 'Welkom / Thabong',
+            ward_num: 15,
+            winner: 'ANC',
+            turnout: 0.418,
+            margin: 0.28,
+            enp: 3.10,
+            ward_gap_pp: -3.1,
+            risk_tier: 'High risk',
+            forecast_2026: 0.401,
+            forecast_lo: 0.348,
+            forecast_hi: 0.454,
+            deprivation_score: 0.77,
+            registered: 16500,
+            tent_share: 0.20,
+            top_vds: [
+              { VotingDistrict: 33120016, station: 'THABONG COMMUNITY CENTRE', station_type: 'Centre', registered: 3900, turnout: 0.432, tent: 0 },
+              { VotingDistrict: 33120027, station: 'WELKOM HIGH SCHOOL', station_type: 'School', registered: 3500, turnout: 0.415, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'Limpopo': {
+        name: 'Limpopo',
+        code: 'LP',
+        capital: 'Polokwane',
+        description: 'Vast traditional authority wards · Significant EFF and ANC competition with rural water deficits',
+        registered: 2795400,
+        turnout: 0.4619,
+        forecast: 0.445,
+        forecast_lo: 0.401,
+        forecast_hi: 0.489,
+        tent_vds: 91,
+        metros: ['Polokwane', 'Thabazimbi', 'Makhado', 'Greater Tzaneen', 'Mogalakwena'],
+        wards: [
+          {
+            ward_id: '93503019',
+            province: 'Limpopo',
+            metro: 'Polokwane',
+            locality: 'Polokwane CBD / Bendor',
+            ward_num: 19,
+            winner: 'DA',
+            turnout: 0.582,
+            margin: 0.34,
+            enp: 2.82,
+            ward_gap_pp: 12.0,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.569,
+            forecast_lo: 0.515,
+            forecast_hi: 0.623,
+            deprivation_score: 0.29,
+            registered: 17200,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 76100012, station: 'POLOKWANE CIVIC CENTRE', station_type: 'Civic Centre', registered: 4500, turnout: 0.601, tent: 0 },
+              { VotingDistrict: 76100023, station: 'BENDOR PRIMARY SCHOOL', station_type: 'School', registered: 3800, turnout: 0.574, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '93503008',
+            province: 'Limpopo',
+            metro: 'Polokwane',
+            locality: 'Seshego Zone 3',
+            ward_num: 8,
+            winner: 'EFF',
+            turnout: 0.432,
+            margin: 0.16,
+            enp: 3.45,
+            ward_gap_pp: -3.0,
+            risk_tier: 'High risk',
+            forecast_2026: 0.415,
+            forecast_lo: 0.362,
+            forecast_hi: 0.468,
+            deprivation_score: 0.74,
+            registered: 18900,
+            tent_share: 0.18,
+            top_vds: [
+              { VotingDistrict: 76110018, station: 'SESHEGO COMMUNITY STADIUM', station_type: 'Stadium', registered: 4300, turnout: 0.448, tent: 0 },
+              { VotingDistrict: 76110029, station: 'ZONE 3 LUTHERAN CHURCH HALL', station_type: 'Church', registered: 3700, turnout: 0.428, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '93404005',
+            province: 'Limpopo',
+            metro: 'Makhado',
+            locality: 'Louis Trichardt / Vhembe',
+            ward_num: 5,
+            winner: 'ANC',
+            turnout: 0.472,
+            margin: 0.42,
+            enp: 2.35,
+            ward_gap_pp: 1.0,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.455,
+            forecast_lo: 0.402,
+            forecast_hi: 0.508,
+            deprivation_score: 0.68,
+            registered: 16100,
+            tent_share: 0.15,
+            top_vds: [
+              { VotingDistrict: 76120014, station: 'MAKHADO SHOW GROUNDS', station_type: 'Show Grounds', registered: 4100, turnout: 0.485, tent: 0 },
+              { VotingDistrict: 76120025, station: 'DZATA SECONDARY SCHOOL', station_type: 'School', registered: 3400, turnout: 0.462, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'Mpumalanga': {
+        name: 'Mpumalanga',
+        code: 'MP',
+        capital: 'Mbombela',
+        description: 'Mining, coal energy grid & tourism economy · Spatial service backlogs in peri-urban townships',
+        registered: 2025600,
+        turnout: 0.4792,
+        forecast: 0.454,
+        forecast_lo: 0.410,
+        forecast_hi: 0.498,
+        tent_vds: 76,
+        metros: ['City of Mbombela', 'Emalahleni', 'Govan Mbeki', 'Steve Tshwete'],
+        wards: [
+          {
+            ward_id: '83205014',
+            province: 'Mpumalanga',
+            metro: 'City of Mbombela',
+            locality: 'Mbombela Central / Riverside',
+            ward_num: 14,
+            winner: 'DA',
+            turnout: 0.575,
+            margin: 0.32,
+            enp: 2.90,
+            ward_gap_pp: 9.6,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.561,
+            forecast_lo: 0.508,
+            forecast_hi: 0.614,
+            deprivation_score: 0.31,
+            registered: 17400,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 54100012, station: 'NELSPRUIT CIVIC CENTRE', station_type: 'Civic Centre', registered: 4600, turnout: 0.592, tent: 0 },
+              { VotingDistrict: 54100023, station: 'BERGFLAM HIGH SCHOOL', station_type: 'School', registered: 3900, turnout: 0.565, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '83205002',
+            province: 'Mpumalanga',
+            metro: 'City of Mbombela',
+            locality: 'KaNyamazane Ward 2',
+            ward_num: 2,
+            winner: 'ANC',
+            turnout: 0.438,
+            margin: 0.38,
+            enp: 2.65,
+            ward_gap_pp: -4.1,
+            risk_tier: 'High risk',
+            forecast_2026: 0.421,
+            forecast_lo: 0.368,
+            forecast_hi: 0.474,
+            deprivation_score: 0.75,
+            registered: 18100,
+            tent_share: 0.20,
+            top_vds: [
+              { VotingDistrict: 54110018, station: 'KANYAMAZANE COMMUNITY HALL', station_type: 'Hall', registered: 4200, turnout: 0.452, tent: 0 },
+              { VotingDistrict: 54110029, station: 'THEMBEKA SECONDARY SCHOOL', station_type: 'School', registered: 3700, turnout: 0.431, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '83102021',
+            province: 'Mpumalanga',
+            metro: 'Emalahleni',
+            locality: 'Witbank Central / Modelpark',
+            ward_num: 21,
+            winner: 'DA',
+            turnout: 0.521,
+            margin: 0.26,
+            enp: 3.20,
+            ward_gap_pp: 4.2,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.505,
+            forecast_lo: 0.452,
+            forecast_hi: 0.558,
+            deprivation_score: 0.42,
+            registered: 16800,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 54120015, station: 'WITBANK TOWN HALL', station_type: 'Town Hall', registered: 4300, turnout: 0.535, tent: 0 },
+              { VotingDistrict: 54120026, station: 'REYNO RIDGE PRIMARY SCHOOL', station_type: 'School', registered: 3800, turnout: 0.512, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'North West': {
+        name: 'North West',
+        code: 'NW',
+        capital: 'Mahikeng',
+        description: 'Platinum belt & agricultural heartland · Marikana legacy and intense union/party dynamics',
+        registered: 1728900,
+        turnout: 0.4312,
+        forecast: 0.418,
+        forecast_lo: 0.375,
+        forecast_hi: 0.461,
+        tent_vds: 88,
+        metros: ['Rustenburg', 'Madibeng', 'JB Marks', 'City of Matlosana'],
+        wards: [
+          {
+            ward_id: '63704016',
+            province: 'North West',
+            metro: 'Rustenburg',
+            locality: 'Rustenburg CBD / Cashan',
+            ward_num: 16,
+            winner: 'DA',
+            turnout: 0.548,
+            margin: 0.30,
+            enp: 3.15,
+            ward_gap_pp: 11.7,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.535,
+            forecast_lo: 0.482,
+            forecast_hi: 0.588,
+            deprivation_score: 0.35,
+            registered: 16900,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 62100014, station: 'RUSTENBURG CIVIC CENTRE', station_type: 'Civic Centre', registered: 4400, turnout: 0.565, tent: 0 },
+              { VotingDistrict: 62100025, station: 'HOERSKOOL RUSTENBURG', station_type: 'School', registered: 3900, turnout: 0.538, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '63704003',
+            province: 'North West',
+            metro: 'Rustenburg',
+            locality: 'Marikana / Wonderkop',
+            ward_num: 3,
+            winner: 'EFF',
+            turnout: 0.384,
+            margin: 0.14,
+            enp: 3.75,
+            ward_gap_pp: -4.7,
+            risk_tier: 'High risk',
+            forecast_2026: 0.368,
+            forecast_lo: 0.315,
+            forecast_hi: 0.421,
+            deprivation_score: 0.82,
+            registered: 19400,
+            tent_share: 0.33,
+            top_vds: [
+              { VotingDistrict: 62110010, station: 'MARIKANA COMMUNITY HALL', station_type: 'Hall', registered: 3900, turnout: 0.402, tent: 0 },
+              { VotingDistrict: 62110021, station: 'WONDERKOP SECONDARY SCHOOL', station_type: 'School', registered: 3400, turnout: 0.385, tent: 0 },
+              { VotingDistrict: 62110032, station: 'KOPPIE SETTLEMENT TENT', station_type: 'Canvas Tent', registered: 2400, turnout: 0.342, tent: 1 }
+            ]
+          },
+          {
+            ward_id: '64005008',
+            province: 'North West',
+            metro: 'JB Marks',
+            locality: 'Potchefstroom Central / Baillie Park',
+            ward_num: 8,
+            winner: 'DA',
+            turnout: 0.562,
+            margin: 0.38,
+            enp: 2.75,
+            ward_gap_pp: 13.1,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.548,
+            forecast_lo: 0.495,
+            forecast_hi: 0.601,
+            deprivation_score: 0.28,
+            registered: 15800,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 62120016, station: 'POTCHEFSTROOM TOWN HALL', station_type: 'Town Hall', registered: 4200, turnout: 0.582, tent: 0 },
+              { VotingDistrict: 62120027, station: 'BAILLIE PARK PRIMARY SCHOOL', station_type: 'School', registered: 3600, turnout: 0.551, tent: 0 }
+            ]
+          }
+        ]
+      },
+      'Northern Cape': {
+        name: 'Northern Cape',
+        code: 'NC',
+        capital: 'Kimberley',
+        description: 'Largest landmass, lowest population density · Vast inter-station distances and solar/mining clusters',
+        registered: 654200,
+        turnout: 0.5341,
+        forecast: 0.511,
+        forecast_lo: 0.468,
+        forecast_hi: 0.554,
+        tent_vds: 22,
+        metros: ['Sol Plaatje', 'Dawid Kruiper', 'Ga-Segonyana', 'Nama Khoi'],
+        wards: [
+          {
+            ward_id: '30901001',
+            province: 'Northern Cape',
+            metro: 'Sol Plaatje',
+            locality: 'Kimberley CBD / Belgravia',
+            ward_num: 1,
+            winner: 'DA',
+            turnout: 0.589,
+            margin: 0.35,
+            enp: 2.78,
+            ward_gap_pp: 5.5,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.575,
+            forecast_lo: 0.522,
+            forecast_hi: 0.628,
+            deprivation_score: 0.30,
+            registered: 14200,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 12100010, station: 'KIMBERLEY CITY HALL', station_type: 'City Hall', registered: 4100, turnout: 0.612, tent: 0 },
+              { VotingDistrict: 12100021, station: 'BOYS HIGH SCHOOL KIMBERLEY', station_type: 'School', registered: 3600, turnout: 0.578, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '30901015',
+            province: 'Northern Cape',
+            metro: 'Sol Plaatje',
+            locality: 'Galeshewe Zone 4',
+            ward_num: 15,
+            winner: 'ANC',
+            turnout: 0.485,
+            margin: 0.28,
+            enp: 3.12,
+            ward_gap_pp: -4.9,
+            risk_tier: 'Medium risk',
+            forecast_2026: 0.468,
+            forecast_lo: 0.415,
+            forecast_hi: 0.521,
+            deprivation_score: 0.68,
+            registered: 15800,
+            tent_share: 0.12,
+            top_vds: [
+              { VotingDistrict: 12110016, station: 'GALESHEWE STADIUM HALL', station_type: 'Stadium Hall', registered: 4100, turnout: 0.505, tent: 0 },
+              { VotingDistrict: 12110027, station: 'TLOTLANG PRIMARY SCHOOL', station_type: 'School', registered: 3700, turnout: 0.478, tent: 0 }
+            ]
+          },
+          {
+            ward_id: '30801003',
+            province: 'Northern Cape',
+            metro: 'Dawid Kruiper',
+            locality: 'Upington CBD / Oosterville',
+            ward_num: 3,
+            winner: 'DA',
+            turnout: 0.572,
+            margin: 0.32,
+            enp: 2.85,
+            ward_gap_pp: 3.8,
+            risk_tier: 'Low risk',
+            forecast_2026: 0.558,
+            forecast_lo: 0.505,
+            forecast_hi: 0.611,
+            deprivation_score: 0.36,
+            registered: 13900,
+            tent_share: 0.0,
+            top_vds: [
+              { VotingDistrict: 12120012, station: 'UPINGTON CIVIC CENTRE', station_type: 'Civic Centre', registered: 4300, turnout: 0.591, tent: 0 },
+              { VotingDistrict: 12120023, station: 'HOERSKOOL DUINEVELD', station_type: 'School', registered: 3500, turnout: 0.562, tent: 0 }
+            ]
+          }
+        ]
+      }
+    };
+  }
+
+  getWardById(wardId) {
+    if (!wardId) return null;
+    const currProvWards = (this.provincesData[this.selectedProvince] || {}).wards || [];
+    let ward = currProvWards.find(w => String(w.ward_id) === String(wardId));
+    if (ward) return ward;
+
+    for (const p of Object.values(this.provincesData)) {
+      ward = (p.wards || []).find(w => String(w.ward_id) === String(wardId));
+      if (ward) return ward;
+    }
+    if (this.data && this.data.wards) {
+      return this.data.wards.find(w => String(w.ward_id) === String(wardId));
+    }
+    return null;
+  }
+
+  getAllWards() {
+    const all = [];
+    for (const prov of Object.values(this.provincesData)) {
+      if (prov.wards) all.push(...prov.wards);
+    }
+    return all;
+  }
+
+  setProvince(provName) {
+    if (!this.provincesData[provName]) return;
+    this.selectedProvince = provName;
+
+    // 1. Update quick pill active state
+    const pills = document.querySelectorAll('.prov-pill');
+    pills.forEach(p => {
+      if (p.getAttribute('data-province') === provName) {
+        p.classList.add('active');
+        p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      } else {
+        p.classList.remove('active');
+      }
+    });
+
+    // 2. Update Province select dropdown if out of sync
+    const selProv = document.getElementById('fullSelectProvince');
+    if (selProv && selProv.value !== provName) {
+      selProv.value = provName;
+    }
+
+    // 3. Update Header & Banner
+    const wehTag = document.getElementById('wehProvTag');
+    if (wehTag) wehTag.textContent = `${provName} Active`;
+
+    const provData = this.provincesData[provName];
+    if (provData) {
+      const elCode = document.getElementById('psbProvCode');
+      if (elCode) elCode.textContent = provData.code;
+
+      const elName = document.getElementById('psbProvName');
+      if (elName) elName.textContent = `${provData.name} Province`;
+
+      const elSub = document.getElementById('psbProvSub');
+      if (elSub) elSub.textContent = `Capital: ${provData.capital} · ${provData.description}`;
+
+      const elReg = document.getElementById('psbRegistered');
+      if (elReg) elReg.textContent = (provData.registered || 0).toLocaleString();
+
+      const elTurnout = document.getElementById('psbHistoricalTurnout');
+      if (elTurnout) elTurnout.textContent = `${((provData.turnout || 0) * 100).toFixed(1)}%`;
+
+      const elFc = document.getElementById('psbForecastTurnout');
+      if (elFc) elFc.textContent = `${((provData.forecast || 0) * 100).toFixed(1)}%`;
+
+      const elCi = document.getElementById('psbForecastCI');
+      if (elCi) elCi.textContent = `90% CI: ${((provData.forecast_lo || 0) * 100).toFixed(1)}%–${((provData.forecast_hi || 0) * 100).toFixed(1)}%`;
+
+      const elTents = document.getElementById('psbTentCount');
+      if (elTents) elTents.textContent = `${provData.tent_vds || 0} Tents`;
+    }
+
+    // 4. Update Municipality/Metro Dropdown
+    this.populateMetroDropdownForProvince(provName);
+
+    // 5. Populate Wards Dropdown
+    this.populateFullWardsDropdown();
+
+    // 6. Refresh active ward card
+    this.updateFullWardCard();
+
+    // 7. Update comparator options
+    this.populateWardComparator();
+
+    this.showToast(`Switched to ${provName} (${provData.wards ? provData.wards.length : 0} wards loaded)`);
+  }
+
+  populateMetroDropdownForProvince(provName) {
+    const selMetro = document.getElementById('fullSelectMetro');
+    if (!selMetro) return;
+    const prov = this.provincesData[provName];
+    if (!prov) return;
+
+    let options = `<option value="all" selected>All Municipalities & Metros (${prov.wards ? prov.wards.length : 0} Wards)</option>`;
+    if (prov.metros && prov.metros.length > 0) {
+      prov.metros.forEach(m => {
+        const count = (prov.wards || []).filter(w => w.metro === m || String(w.metro).includes(m)).length;
+        options += `<option value="${m}">${m} ${count > 0 ? `(${count} Wards)` : ''}</option>`;
+      });
+    }
+    selMetro.innerHTML = options;
+    this.fullMetroFilter = 'all';
   }
 
   populateFullWardsDropdown() {
     const selWard = document.getElementById('fullSelectWard');
-    if (!selWard || !this.data) return;
+    const badge = document.getElementById('fullWardCounterBadge');
+    if (!selWard) return;
 
-    let wards = this.data.wards || [];
+    const prov = this.provincesData[this.selectedProvince] || this.provincesData['Gauteng'];
+    let wards = (prov && prov.wards) ? prov.wards : [];
+
+    // Filter by Metro
     if (this.fullMetroFilter && this.fullMetroFilter !== 'all') {
-      wards = wards.filter(w => w.metro === this.fullMetroFilter);
+      wards = wards.filter(w => w.metro === this.fullMetroFilter || String(w.metro).includes(this.fullMetroFilter));
     }
+
+    // Filter by Risk
     if (this.fullRiskFilter && this.fullRiskFilter !== 'all') {
       wards = wards.filter(w => {
         const r = (w.risk_tier || '').toLowerCase();
-        if (this.fullRiskFilter === 'high') return r.includes('high');
-        if (this.fullRiskFilter === 'med') return r.includes('med') || r.includes('moderate');
-        if (this.fullRiskFilter === 'low') return r.includes('low');
+        if (this.fullRiskFilter === 'High risk' || this.fullRiskFilter === 'high') return r.includes('high');
+        if (this.fullRiskFilter === 'Medium risk' || this.fullRiskFilter === 'med') return r.includes('med') || r.includes('moderate');
+        if (this.fullRiskFilter === 'Low risk' || this.fullRiskFilter === 'low') return r.includes('low');
         return true;
       });
     }
 
-    const badge = document.getElementById('fullWardCounterBadge');
+    // Filter by live search text
+    if (this.wardSearchQuery && this.wardSearchQuery.length > 0) {
+      const q = this.wardSearchQuery;
+      wards = wards.filter(w => {
+        const wid = String(w.ward_id || '').toLowerCase();
+        const wnum = String(w.ward_num || '').toLowerCase();
+        const metro = String(w.metro || '').toLowerCase();
+        const loc = String(w.locality || '').toLowerCase();
+        const winner = String(w.winner || '').toLowerCase();
+        const vds = (w.top_vds || []).map(v => String(v.station || '').toLowerCase()).join(' ');
+        return wid.includes(q) || wnum === q || metro.includes(q) || loc.includes(q) || winner.includes(q) || vds.includes(q);
+      });
+    }
+
     if (badge) {
       badge.textContent = `${wards.length} Wards Listed`;
     }
 
-    selWard.innerHTML = wards.map(w => `
-      <option value="${w.ward_id}">Ward ${w.ward_id} (${w.metro} - ${w.winner}, ${(w.turnout * 100).toFixed(1)}%)</option>
-    `).join('');
+    if (wards.length === 0) {
+      selWard.innerHTML = `<option value="">No matching wards found</option>`;
+      return;
+    }
 
-    const exists = wards.some(w => w.ward_id === this.selectedWardId);
+    selWard.innerHTML = wards.map(w => {
+      const locStr = w.locality ? ` - ${w.locality}` : '';
+      return `<option value="${w.ward_id}">Ward ${w.ward_id} (${w.metro}${locStr} · ${w.winner}, ${(w.turnout * 100).toFixed(1)}%)</option>`;
+    }).join('');
+
+    const exists = wards.some(w => String(w.ward_id) === String(this.selectedWardId));
     if (exists) {
       selWard.value = this.selectedWardId;
     } else if (wards.length > 0) {
       this.selectedWardId = wards[0].ward_id;
+      this.activeWardId = wards[0].ward_id;
       selWard.value = this.selectedWardId;
     }
 
@@ -1221,12 +2384,49 @@ class CivicPulseApp {
   }
 
   onFullMetroDropdown(metro) {
-    this.setFullMetroFilter(metro);
+    this.fullMetroFilter = metro;
+    this.populateFullWardsDropdown();
   }
 
   onFullRiskDropdown(risk) {
     this.fullRiskFilter = risk;
     this.populateFullWardsDropdown();
+  }
+
+  onWardSearchInput(query) {
+    this.wardSearchQuery = (query || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('wfcClearSearch');
+    if (clearBtn) {
+      clearBtn.style.display = this.wardSearchQuery.length > 0 ? 'block' : 'none';
+    }
+    this.populateFullWardsDropdown();
+  }
+
+  clearWardSearch() {
+    const input = document.getElementById('wardFilterSearch');
+    if (input) input.value = '';
+    this.onWardSearchInput('');
+  }
+
+  resetWardFilters() {
+    this.fullMetroFilter = 'all';
+    this.fullRiskFilter = 'all';
+    this.wardSearchQuery = '';
+
+    const selMetro = document.getElementById('fullSelectMetro');
+    if (selMetro) selMetro.value = 'all';
+
+    const selRisk = document.getElementById('fullSelectRisk');
+    if (selRisk) selRisk.value = 'all';
+
+    const searchInput = document.getElementById('wardFilterSearch');
+    if (searchInput) searchInput.value = '';
+
+    const clearBtn = document.getElementById('wfcClearSearch');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    this.populateFullWardsDropdown();
+    this.showToast('Ward filters reset to default');
   }
 
   onFullWardDropdown(wardId) {
@@ -1237,24 +2437,31 @@ class CivicPulseApp {
   }
 
   updateFullWardCard() {
-    if (!this.data) return;
-    const ward = this.data.wards.find(w => w.ward_id === this.selectedWardId) || this.data.wards[0];
+    const ward = this.getWardById(this.selectedWardId);
     if (!ward) return;
 
     const elWardId = document.getElementById('fullCardWardId');
     if (elWardId) elWardId.textContent = `Ward ${ward.ward_id}`;
 
     const elMetro = document.getElementById('fullCardWardMetro');
-    if (elMetro) elMetro.textContent = `City of ${ward.metro}`;
+    if (elMetro) elMetro.textContent = ward.metro.startsWith('City of') || ward.metro.includes('Metro') ? ward.metro : `${ward.metro} Municipality`;
+
+    const elLocality = document.getElementById('fullCardWardLocality');
+    if (elLocality) elLocality.textContent = ward.locality || `${ward.province || this.selectedProvince} · Ward ${ward.ward_num || ward.ward_id.slice(-2)}`;
 
     const elBadge = document.getElementById('fullCardWinnerBadge');
     if (elBadge) {
       elBadge.textContent = `${ward.winner} Won`;
       elBadge.className = 'winner-badge';
-      if (ward.winner === 'DA') elBadge.classList.add('party-da');
-      else if (ward.winner === 'ANC') elBadge.classList.add('party-anc');
-      else if (ward.winner === 'EFF') elBadge.classList.add('party-eff');
-      else if (ward.winner === 'ActionSA') elBadge.classList.add('party-actionsa');
+      const w = (ward.winner || '').toUpperCase();
+      if (w === 'DA') elBadge.classList.add('party-da');
+      else if (w === 'ANC') elBadge.classList.add('party-anc');
+      else if (w === 'EFF') elBadge.classList.add('party-eff');
+      else if (w === 'IFP') elBadge.classList.add('party-ifp');
+      else if (w === 'ACTIONSA') elBadge.classList.add('party-actionsa');
+      else if (w === 'PA') elBadge.classList.add('party-pa');
+      else if (w === 'MK' || w === 'MKP') elBadge.classList.add('party-mkp');
+      else if (w === 'VF PLUS' || w === 'VF+') elBadge.classList.add('party-vfplus');
       else elBadge.classList.add('party-da');
     }
 
@@ -1265,41 +2472,57 @@ class CivicPulseApp {
       elRisk.className = 'badge-mini ' + (r.includes('high') ? 'badge-red' : r.includes('low') ? 'badge-green' : 'badge-amber');
     }
 
+    const provData = this.provincesData[ward.province || this.selectedProvince] || this.provincesData['Gauteng'];
+    const provMeanTurnout = provData.turnout || 0.474;
+
     const elTurnout = document.getElementById('fullCardTurnout');
     if (elTurnout) elTurnout.textContent = `${(ward.turnout * 100).toFixed(1)}%`;
 
+    const elTurnoutSub = document.getElementById('fullCardTurnoutSub');
+    if (elTurnoutSub) elTurnoutSub.textContent = `${provData.name} Avg: ${(provMeanTurnout * 100).toFixed(1)}%`;
+
     const elMargin = document.getElementById('fullCardMargin');
-    if (elMargin) elMargin.textContent = ward.margin.toFixed(2);
+    if (elMargin) elMargin.textContent = (ward.margin || 0.25).toFixed(2);
 
     const elENP = document.getElementById('fullCardENP');
-    if (elENP) elENP.textContent = ward.enp.toFixed(2);
+    if (elENP) elENP.textContent = (ward.enp || 2.8).toFixed(2);
 
     const elGap = document.getElementById('fullCardGap');
+    const elGapSub = document.getElementById('fullCardGapSub');
     if (elGap) {
-      const gap = ward.ward_gap_pp !== undefined ? ward.ward_gap_pp : ((ward.turnout - 0.42) * 100);
+      const gap = ward.ward_gap_pp !== undefined ? ward.ward_gap_pp : ((ward.turnout - provMeanTurnout) * 100);
       elGap.textContent = `${gap >= 0 ? '+' : ''}${gap.toFixed(1)} pp`;
       elGap.className = 'wdc-m-val ' + (gap < -5 ? 'text-danger' : gap > 0 ? 'text-accent' : '');
+      if (elGapSub) {
+        elGapSub.textContent = gap < 0 ? 'Deprivation Participation Deficit' : 'Above Electoral Average';
+      }
     }
 
     const elForecast = document.getElementById('fullCardForecast');
     if (elForecast) {
-      const fcVal = ward.forecast_2026 ? `${(ward.forecast_2026 * 100).toFixed(1)}%` : '28.5%';
+      const fcVal = ward.forecast_2026 ? `${(ward.forecast_2026 * 100).toFixed(1)}%` : `${((ward.turnout - 0.015) * 100).toFixed(1)}%`;
       elForecast.textContent = fcVal;
     }
 
     const elForecastCI = document.getElementById('fullCardForecastCI');
     if (elForecastCI) {
-      const fcLo = ward.forecast_lo ? `${(ward.forecast_lo * 100).toFixed(1)}%` : '23.0%';
-      const fcHi = ward.forecast_hi ? `${(ward.forecast_hi * 100).toFixed(1)}%` : '34.0%';
+      const fcLo = ward.forecast_lo ? `${(ward.forecast_lo * 100).toFixed(1)}%` : `${Math.max(15, (ward.turnout - 0.06) * 100).toFixed(1)}%`;
+      const fcHi = ward.forecast_hi ? `${(ward.forecast_hi * 100).toFixed(1)}%` : `${Math.min(95, (ward.turnout + 0.05) * 100).toFixed(1)}%`;
       elForecastCI.textContent = `${fcLo} – ${fcHi}`;
     }
 
     // Populate Voting Districts Table
     const tbody = document.getElementById('fullVdsTbody');
+    const elVdsCount = document.getElementById('fullCardVdsCount');
+    const vds = ward.top_vds || [];
+
+    if (elVdsCount) {
+      elVdsCount.textContent = `${vds.length} Voting Districts Audited`;
+    }
+
     if (tbody) {
-      const vds = ward.top_vds || [];
       if (vds.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1.5rem; color: var(--color-text-subtle);">No voting district breakdown available for this ward.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1.5rem; color: var(--text-muted);">No voting district breakdown available for this ward.</td></tr>`;
       } else {
         tbody.innerHTML = vds.map(vd => `
           <tr>
@@ -1308,7 +2531,7 @@ class CivicPulseApp {
             <td><span class="badge-mini badge-blue">${vd.station_type || 'Voting Station'}</span></td>
             <td>${(vd.registered || 0).toLocaleString()}</td>
             <td><strong>${((vd.turnout || 0) * 100).toFixed(1)}%</strong></td>
-            <td>${vd.tent ? '<span class="badge-mini badge-red">Tent Station</span>' : '<span class="badge-mini badge-green">Permanent</span>'}</td>
+            <td>${vd.tent ? '<span class="badge-mini badge-red">Canvas Tent</span>' : '<span class="badge-mini badge-green">Permanent</span>'}</td>
           </tr>
         `).join('');
       }
@@ -1318,30 +2541,73 @@ class CivicPulseApp {
   populateWardComparator() {
     const selA = document.getElementById('compWardA');
     const selB = document.getElementById('compWardB');
-    if (!selA || !selB || !this.data) return;
+    if (!selA || !selB) return;
 
-    const wards = this.data.wards || [];
-    const optionsHtml = wards.map(w => `
-      <option value="${w.ward_id}">Ward ${w.ward_id} - ${w.metro} (${w.winner}, ${(w.turnout * 100).toFixed(1)}%)</option>
+    // Get all wards across provinces
+    const allWards = this.getAllWards();
+    if (allWards.length === 0) return;
+
+    const optionsHtml = allWards.map(w => `
+      <option value="${w.ward_id}">Ward ${w.ward_id} - ${w.province || 'GP'} (${w.metro}, ${w.winner}, ${(w.turnout * 100).toFixed(1)}%)</option>
     `).join('');
 
     selA.innerHTML = optionsHtml;
     selB.innerHTML = optionsHtml;
 
-    // Pick two contrasting default wards if available
-    const highDep = wards.find(w => (w.risk_tier || '').toLowerCase().includes('high')) || wards[0];
-    const lowDep = wards.find(w => (w.risk_tier || '').toLowerCase().includes('low') && w.ward_id !== highDep.ward_id) || wards[1];
-
-    if (highDep) {
-      this.compWardAId = highDep.ward_id;
-      selA.value = highDep.ward_id;
+    if (this.compWardAId && allWards.some(w => String(w.ward_id) === String(this.compWardAId))) {
+      selA.value = this.compWardAId;
+    } else {
+      selA.value = allWards[0].ward_id;
+      this.compWardAId = allWards[0].ward_id;
     }
-    if (lowDep) {
-      this.compWardBId = lowDep.ward_id;
-      selB.value = lowDep.ward_id;
+
+    if (this.compWardBId && allWards.some(w => String(w.ward_id) === String(this.compWardBId))) {
+      selB.value = this.compWardBId;
+    } else if (allWards.length > 1) {
+      selB.value = allWards[1].ward_id;
+      this.compWardBId = allWards[1].ward_id;
     }
 
     this.updateWardComparator();
+  }
+
+  setComparatorPreset(presetId) {
+    const allWards = this.getAllWards();
+    let idA = null;
+    let idB = null;
+
+    if (presetId === 'high-low') {
+      const high = allWards.find(w => (w.risk_tier || '').toLowerCase().includes('high')) || allWards[0];
+      const low = allWards.find(w => (w.risk_tier || '').toLowerCase().includes('low') && w.ward_id !== high.ward_id) || allWards[1];
+      idA = high.ward_id;
+      idB = low.ward_id;
+    } else if (presetId === 'cross-prov') {
+      const gp = allWards.find(w => (w.province || '').includes('Gauteng')) || allWards[0];
+      const wc = allWards.find(w => (w.province || '').includes('Western Cape')) || allWards[1];
+      idA = gp ? gp.ward_id : allWards[0].ward_id;
+      idB = wc ? wc.ward_id : allWards[1].ward_id;
+    } else if (presetId === 'soweto-umlazi') {
+      const jhb = allWards.find(w => String(w.ward_id) === '79800065' || (w.metro || '').includes('Johannesburg')) || allWards[0];
+      const uml = allWards.find(w => String(w.ward_id) === '59500082' || (w.locality || '').includes('Umlazi')) || allWards[1];
+      idA = jhb ? jhb.ward_id : allWards[0].ward_id;
+      idB = uml ? uml.ward_id : allWards[1].ward_id;
+    } else if (presetId === 'tent-deficit') {
+      const tent = allWards.find(w => (w.tent_share || 0) > 0.1) || allWards[0];
+      const perm = allWards.find(w => (w.tent_share || 0) === 0 && w.ward_id !== tent.ward_id) || allWards[1];
+      idA = tent.ward_id;
+      idB = perm.ward_id;
+    }
+
+    if (idA && idB) {
+      this.compWardAId = idA;
+      this.compWardBId = idB;
+      const selA = document.getElementById('compWardA');
+      const selB = document.getElementById('compWardB');
+      if (selA) selA.value = idA;
+      if (selB) selB.value = idB;
+      this.updateWardComparator();
+      this.showToast(`Loaded comparator preset: ${presetId}`);
+    }
   }
 
   updateWardComparator() {
@@ -1350,34 +2616,40 @@ class CivicPulseApp {
     const tbody = document.getElementById('compTableTbody');
     const headerA = document.getElementById('compHeaderA');
     const headerB = document.getElementById('compHeaderB');
-    if (!tbody || !this.data) return;
+    if (!tbody) return;
 
     const idA = selA ? selA.value : this.compWardAId;
     const idB = selB ? selB.value : this.compWardBId;
 
-    const wardA = this.data.wards.find(w => w.ward_id === idA) || this.data.wards[0];
-    const wardB = this.data.wards.find(w => w.ward_id === idB) || this.data.wards[1];
+    const wardA = this.getWardById(idA) || this.getAllWards()[0];
+    const wardB = this.getWardById(idB) || this.getAllWards()[1];
 
     if (!wardA || !wardB) return;
 
-    if (headerA) headerA.textContent = `Ward ${wardA.ward_id} (${wardA.metro})`;
-    if (headerB) headerB.textContent = `Ward ${wardB.ward_id} (${wardB.metro})`;
+    if (headerA) headerA.textContent = `Ward ${wardA.ward_id} (${wardA.province || 'GP'} - ${wardA.metro})`;
+    if (headerB) headerB.textContent = `Ward ${wardB.ward_id} (${wardB.province || 'GP'} - ${wardB.metro})`;
 
     const turnoutDiff = ((wardA.turnout - wardB.turnout) * 100).toFixed(1);
-    const depDiff = ((wardA.deprivation_score - wardB.deprivation_score) * 100).toFixed(1);
+    const depDiff = (((wardA.deprivation_score || 0.5) - (wardB.deprivation_score || 0.5)) * 100).toFixed(1);
     const regDiff = ((wardA.registered || 0) - (wardB.registered || 0)).toLocaleString();
 
     tbody.innerHTML = `
       <tr>
+        <td><strong>Province & Region</strong></td>
+        <td><span class="badge-mini badge-blue">${wardA.province || 'Gauteng'}</span></td>
+        <td><span class="badge-mini badge-blue">${wardB.province || 'Gauteng'}</span></td>
+        <td>${(wardA.province || 'Gauteng') === (wardB.province || 'Gauteng') ? 'Intra-Provincial' : '<span class="badge-mini badge-purple">Cross-Provincial Benchmark</span>'}</td>
+      </tr>
+      <tr>
         <td><strong>Metropolitan Municipality</strong></td>
         <td>${wardA.metro}</td>
         <td>${wardB.metro}</td>
-        <td><span class="badge-mini">${wardA.metro === wardB.metro ? 'Same Metro' : 'Cross-Metro'}</span></td>
+        <td><span class="badge-mini">${wardA.metro === wardB.metro ? 'Same Metro' : 'Different Municipality'}</span></td>
       </tr>
       <tr>
         <td><strong>Winning Party (2021 LGE)</strong></td>
-        <td><span class="winner-badge ${wardA.winner === 'DA' ? 'party-da' : wardA.winner === 'ANC' ? 'party-anc' : wardA.winner === 'EFF' ? 'party-eff' : 'party-actionsa'}">${wardA.winner} Won</span></td>
-        <td><span class="winner-badge ${wardB.winner === 'DA' ? 'party-da' : wardB.winner === 'ANC' ? 'party-anc' : wardB.winner === 'EFF' ? 'party-eff' : 'party-actionsa'}">${wardB.winner} Won</span></td>
+        <td><span class="winner-badge party-${(wardA.winner || 'da').toLowerCase()}">${wardA.winner} Won</span></td>
+        <td><span class="winner-badge party-${(wardB.winner || 'da').toLowerCase()}">${wardB.winner} Won</span></td>
         <td>${wardA.winner === wardB.winner ? 'Identical Winner' : '<span class="text-amber">Different Plurality</span>'}</td>
       </tr>
       <tr>
@@ -1388,14 +2660,14 @@ class CivicPulseApp {
       </tr>
       <tr>
         <td><strong>2026 Forecast (90% CI)</strong></td>
-        <td>${(wardA.forecast_2026 * 100).toFixed(1)}% <small style="color:var(--color-text-subtle);">(${(wardA.forecast_lo * 100).toFixed(1)}%–${(wardA.forecast_hi * 100).toFixed(1)}%)</small></td>
-        <td>${(wardB.forecast_2026 * 100).toFixed(1)}% <small style="color:var(--color-text-subtle);">(${(wardB.forecast_lo * 100).toFixed(1)}%–${(wardB.forecast_hi * 100).toFixed(1)}%)</small></td>
+        <td>${((wardA.forecast_2026 || (wardA.turnout - 0.015)) * 100).toFixed(1)}% <small style="color:var(--text-muted);">(${((wardA.forecast_lo || 0.23) * 100).toFixed(1)}%–${((wardA.forecast_hi || 0.34) * 100).toFixed(1)}%)</small></td>
+        <td>${((wardB.forecast_2026 || (wardB.turnout - 0.015)) * 100).toFixed(1)}% <small style="color:var(--text-muted);">(${((wardB.forecast_lo || 0.23) * 100).toFixed(1)}%–${((wardB.forecast_hi || 0.34) * 100).toFixed(1)}%)</small></td>
         <td><span class="badge-mini badge-purple">Ridge Model</span></td>
       </tr>
       <tr>
         <td><strong>Deprivation Score (Index)</strong></td>
-        <td>${wardA.deprivation_score.toFixed(3)}</td>
-        <td>${wardB.deprivation_score.toFixed(3)}</td>
+        <td>${(wardA.deprivation_score || 0.5).toFixed(3)}</td>
+        <td>${(wardB.deprivation_score || 0.5).toFixed(3)}</td>
         <td><span class="${depDiff >= 0 ? 'text-danger' : 'text-accent'}">${depDiff >= 0 ? '+' : ''}${depDiff} pp relative stress</span></td>
       </tr>
       <tr>
@@ -1406,20 +2678,20 @@ class CivicPulseApp {
       </tr>
       <tr>
         <td><strong>Margin of Victory</strong></td>
-        <td>${wardA.margin.toFixed(2)}</td>
-        <td>${wardB.margin.toFixed(2)}</td>
-        <td>${Math.abs(wardA.margin - wardB.margin) < 0.1 ? 'Competitive parity' : `${Math.abs(wardA.margin - wardB.margin).toFixed(2)} margin gap`}</td>
+        <td>${(wardA.margin || 0.25).toFixed(2)}</td>
+        <td>${(wardB.margin || 0.25).toFixed(2)}</td>
+        <td>${Math.abs((wardA.margin || 0.25) - (wardB.margin || 0.25)) < 0.1 ? 'Competitive parity' : `${Math.abs((wardA.margin || 0.25) - (wardB.margin || 0.25)).toFixed(2)} margin gap`}</td>
       </tr>
       <tr>
         <td><strong>Effective Parties (ENP)</strong></td>
-        <td>${wardA.enp.toFixed(2)}</td>
-        <td>${wardB.enp.toFixed(2)}</td>
-        <td>${wardA.enp > 3 ? '<span class="badge-mini badge-blue">High Fragmentation</span>' : 'Standard'}</td>
+        <td>${(wardA.enp || 2.8).toFixed(2)}</td>
+        <td>${(wardB.enp || 2.8).toFixed(2)}</td>
+        <td>${(wardA.enp || 2.8) > 3 ? '<span class="badge-mini badge-blue">High Fragmentation</span>' : 'Standard'}</td>
       </tr>
       <tr>
         <td><strong>Tent Voting Station Share</strong></td>
-        <td>${((wardA.tent_share || 0) * 100).toFixed(1)}% (${(wardA.top_vds || []).filter(v => v.tent).length} tents)</td>
-        <td>${((wardB.tent_share || 0) * 100).toFixed(1)}% (${(wardB.top_vds || []).filter(v => v.tent).length} tents)</td>
+        <td>${(((wardA.tent_share || 0)) * 100).toFixed(1)}% (${(wardA.top_vds || []).filter(v => v.tent).length} tents)</td>
+        <td>${(((wardB.tent_share || 0)) * 100).toFixed(1)}% (${(wardB.top_vds || []).filter(v => v.tent).length} tents)</td>
         <td>${(wardA.tent_share || 0) > (wardB.tent_share || 0) ? '<span class="badge-mini badge-red">Higher Infrastructure Deficit</span>' : '<span class="badge-mini badge-green">Lower Deficit</span>'}</td>
       </tr>
       <tr>

@@ -602,36 +602,170 @@
 
           <!-- ================= TAB 3: WARD INTELLIGENCE & COMPARATOR ================= -->
           <section class="full-tab-pane" id="paneWards">
-            <!-- Filter Toolbar -->
-            <div class="ward-explorer-toolbar">
-              <div class="wet-field">
-                <label for="fullSelectMetro">Filter by Metro:</label>
-                <select id="fullSelectMetro" class="custom-select" onchange="window.CivicApp.onFullMetroDropdown(this.value);">
-                  <option value="Tshwane" selected>City of Tshwane (107 Wards)</option>
-                  <option value="Johannesburg">City of Johannesburg (135 Wards)</option>
-                  <option value="Ekurhuleni">City of Ekurhuleni (112 Wards)</option>
-                </select>
+            <!-- Header Section -->
+            <div class="ward-explorer-header">
+              <div class="weh-titles">
+                <div class="weh-badge-row">
+                  <span class="badge-mini badge-blue">Spatial Electoral Intelligence</span>
+                  <span class="badge-mini badge-green" id="wehProvTag">Gauteng Active</span>
+                </div>
+                <h2 class="weh-title">National Ward Explorer & Voting District Inspector</h2>
+                <p class="weh-desc">Explore voter participation dynamics, infrastructure stress, and 2026 turnout forecasts across South Africa's 9 provinces and 4,468 municipal voting districts.</p>
+              </div>
+            </div>
+
+            <!-- Province Quick Switcher Pills -->
+            <div class="province-quick-pills" id="provinceQuickPills" role="tablist" aria-label="Select South African Province">
+              <button type="button" class="prov-pill active" data-province="Gauteng" onclick="window.CivicApp.setProvince('Gauteng');">
+                <span class="prov-flag">GP</span>
+                <span class="prov-name">Gauteng</span>
+                <span class="prov-count">354 Wards</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="Western Cape" onclick="window.CivicApp.setProvince('Western Cape');">
+                <span class="prov-flag">WC</span>
+                <span class="prov-name">Western Cape</span>
+                <span class="prov-count">Cape Town & More</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="KwaZulu-Natal" onclick="window.CivicApp.setProvince('KwaZulu-Natal');">
+                <span class="prov-flag">KZN</span>
+                <span class="prov-name">KwaZulu-Natal</span>
+                <span class="prov-count">eThekwini & More</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="Eastern Cape" onclick="window.CivicApp.setProvince('Eastern Cape');">
+                <span class="prov-flag">EC</span>
+                <span class="prov-name">Eastern Cape</span>
+                <span class="prov-count">NMB & BCM</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="Free State" onclick="window.CivicApp.setProvince('Free State');">
+                <span class="prov-flag">FS</span>
+                <span class="prov-name">Free State</span>
+                <span class="prov-count">Mangaung & More</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="Limpopo" onclick="window.CivicApp.setProvince('Limpopo');">
+                <span class="prov-flag">LP</span>
+                <span class="prov-name">Limpopo</span>
+                <span class="prov-count">Polokwane & More</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="Mpumalanga" onclick="window.CivicApp.setProvince('Mpumalanga');">
+                <span class="prov-flag">MP</span>
+                <span class="prov-name">Mpumalanga</span>
+                <span class="prov-count">Mbombela & More</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="North West" onclick="window.CivicApp.setProvince('North West');">
+                <span class="prov-flag">NW</span>
+                <span class="prov-name">North West</span>
+                <span class="prov-count">Rustenburg & More</span>
+              </button>
+              <button type="button" class="prov-pill" data-province="Northern Cape" onclick="window.CivicApp.setProvince('Northern Cape');">
+                <span class="prov-flag">NC</span>
+                <span class="prov-name">Northern Cape</span>
+                <span class="prov-count">Sol Plaatje & More</span>
+              </button>
+            </div>
+
+            <!-- Provincial Overview Snapshot Banner -->
+            <div class="provincial-snapshot-banner" id="provincialSnapshotBanner">
+              <div class="psb-left">
+                <div class="psb-identity">
+                  <div class="psb-badge" id="psbProvCode">GP</div>
+                  <div>
+                    <h3 class="psb-prov-name" id="psbProvName">Gauteng Province</h3>
+                    <p class="psb-prov-sub" id="psbProvSub">Capital: Johannesburg / Pretoria · 5 Metros & Districts · Economic Heartland</p>
+                  </div>
+                </div>
+              </div>
+              <div class="psb-stats-grid">
+                <div class="psb-stat-item">
+                  <span class="psb-stat-lbl">Registered Electorate</span>
+                  <span class="psb-stat-val" id="psbRegistered">6,241,838</span>
+                  <span class="psb-stat-sub">IEC Voters Roll</span>
+                </div>
+                <div class="psb-stat-item">
+                  <span class="psb-stat-lbl">2021 LGE Turnout</span>
+                  <span class="psb-stat-val" id="psbHistoricalTurnout">47.4%</span>
+                  <span class="psb-stat-sub">Provincial Mean</span>
+                </div>
+                <div class="psb-stat-item">
+                  <span class="psb-stat-lbl">2026 Ridge Forecast</span>
+                  <span class="psb-stat-val text-accent" id="psbForecastTurnout">45.8%</span>
+                  <span class="psb-stat-sub" id="psbForecastCI">90% CI: 41.2%–50.4%</span>
+                </div>
+                <div class="psb-stat-item">
+                  <span class="psb-stat-lbl">Temporary Tent VDs</span>
+                  <span class="psb-stat-val text-danger" id="psbTentCount">203 Tents</span>
+                  <span class="psb-stat-sub">Infrastructure Deficit</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter Controls Card -->
+            <div class="ward-filter-card">
+              <div class="wfc-header">
+                <div class="wfc-title-group">
+                  <span class="wfc-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                  </span>
+                  <h4>Filter Wards & Polling Stations</h4>
+                </div>
+                <div class="wfc-actions">
+                  <span class="badge-counter" id="fullWardCounterBadge">107 Wards Listed</span>
+                  <button type="button" class="btn-ghost-sm" onclick="window.CivicApp.resetWardFilters();" title="Reset all filters">Reset Filters</button>
+                </div>
               </div>
 
-              <div class="wet-field">
-                <label for="fullSelectRisk">Filter by Risk Tier:</label>
-                <select id="fullSelectRisk" class="custom-select" onchange="window.CivicApp.onFullRiskDropdown(this.value);">
-                  <option value="all">All Risk Tiers</option>
-                  <option value="High risk">High Risk (Severe Demobilisation)</option>
-                  <option value="Medium risk">Medium Risk</option>
-                  <option value="Low risk">Low Risk (High Turnout)</option>
-                </select>
-              </div>
+              <div class="wfc-grid">
+                <!-- Province Selector -->
+                <div class="wfc-field">
+                  <label for="fullSelectProvince">Province:</label>
+                  <select id="fullSelectProvince" class="custom-select" onchange="window.CivicApp.setProvince(this.value);">
+                    <option value="Gauteng" selected>Gauteng (GP)</option>
+                    <option value="Western Cape">Western Cape (WC)</option>
+                    <option value="KwaZulu-Natal">KwaZulu-Natal (KZN)</option>
+                    <option value="Eastern Cape">Eastern Cape (EC)</option>
+                    <option value="Free State">Free State (FS)</option>
+                    <option value="Limpopo">Limpopo (LP)</option>
+                    <option value="Mpumalanga">Mpumalanga (MP)</option>
+                    <option value="North West">North West (NW)</option>
+                    <option value="Northern Cape">Northern Cape (NC)</option>
+                  </select>
+                </div>
 
-              <div class="wet-field wet-wide">
-                <label for="fullSelectWard">Select Ward to Inspect:</label>
-                <select id="fullSelectWard" class="custom-select" onchange="window.CivicApp.onFullWardDropdown(this.value);">
-                  <!-- Dynamically populated -->
-                </select>
-              </div>
+                <!-- Municipality / Metro Selector -->
+                <div class="wfc-field">
+                  <label for="fullSelectMetro">Municipality / Metro:</label>
+                  <select id="fullSelectMetro" class="custom-select" onchange="window.CivicApp.onFullMetroDropdown(this.value);">
+                    <!-- Dynamically populated based on selected province -->
+                  </select>
+                </div>
 
-              <div class="wet-badge-col">
-                <span class="badge-counter" id="fullWardCounterBadge">107 Wards Listed</span>
+                <!-- Risk Tier Filter -->
+                <div class="wfc-field">
+                  <label for="fullSelectRisk">Vulnerability / Risk Tier:</label>
+                  <select id="fullSelectRisk" class="custom-select" onchange="window.CivicApp.onFullRiskDropdown(this.value);">
+                    <option value="all">All Risk Tiers</option>
+                    <option value="High risk">High Risk (Severe Demobilisation)</option>
+                    <option value="Medium risk">Medium Risk (Service Friction)</option>
+                    <option value="Low risk">Low Risk (High Turnout & Stability)</option>
+                  </select>
+                </div>
+
+                <!-- Search Input Filter -->
+                <div class="wfc-field wfc-search-field">
+                  <label for="wardFilterSearch">Live Search Ward / Station:</label>
+                  <div class="wfc-input-wrapper">
+                    <svg class="wfc-search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="wardFilterSearch" class="custom-input" placeholder="Type Ward ID, locality, station name..." oninput="window.CivicApp.onWardSearchInput(this.value);" />
+                    <button type="button" class="wfc-clear-btn" id="wfcClearSearch" onclick="window.CivicApp.clearWardSearch();" title="Clear search">&times;</button>
+                  </div>
+                </div>
+
+                <!-- Ward Picker Dropdown -->
+                <div class="wfc-field wfc-full-width">
+                  <label for="fullSelectWard">Select Ward to Inspect:</label>
+                  <select id="fullSelectWard" class="custom-select" onchange="window.CivicApp.onFullWardDropdown(this.value);">
+                    <!-- Dynamically populated -->
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -640,7 +774,10 @@
               <div class="wdc-header">
                 <div class="wdc-title-cluster">
                   <span class="ward-id-pill" id="fullCardWardId">Ward 79900059</span>
-                  <h3 class="wdc-metro-name" id="fullCardWardMetro">City of Tshwane</h3>
+                  <div>
+                    <h3 class="wdc-metro-name" id="fullCardWardMetro">City of Tshwane</h3>
+                    <span class="wdc-locality-sub" id="fullCardWardLocality">Hammanskraal West / Temba</span>
+                  </div>
                 </div>
                 <div class="wdc-header-badges">
                   <span class="winner-badge party-da" id="fullCardWinnerBadge">DA Won</span>
@@ -652,7 +789,7 @@
                 <div class="wdc-m-box">
                   <span class="wdc-m-lbl">2021 Electorate Turnout</span>
                   <span class="wdc-m-val" id="fullCardTurnout">29.4%</span>
-                  <span class="wdc-m-sub">Gauteng Avg: 47.4%</span>
+                  <span class="wdc-m-sub" id="fullCardTurnoutSub">Gauteng Avg: 47.4%</span>
                 </div>
                 <div class="wdc-m-box">
                   <span class="wdc-m-lbl">Victory Margin</span>
@@ -667,34 +804,42 @@
                 <div class="wdc-m-box">
                   <span class="wdc-m-lbl">Mobilisation Gap</span>
                   <span class="wdc-m-val text-danger" id="fullCardGap">−17.2 pp</span>
-                  <span class="wdc-m-sub">Vs Metropolitan Mean</span>
+                  <span class="wdc-m-sub" id="fullCardGapSub">Vs Municipal Mean</span>
                 </div>
               </div>
 
               <!-- 2026 Turnout Projection Strip -->
               <div class="wdc-forecast-banner">
                 <div class="fc-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                 </div>
                 <div class="fc-body">
-                  <strong>2026 Municipal Election Turnout Forecast:</strong>
-                  <span class="fc-stat" id="fullCardForecast">28.5%</span>
-                  <span class="fc-ci">(90% Credible Interval: <span id="fullCardForecastCI">23.0% – 34.0%</span>)</span>
+                  <div class="fc-main-info">
+                    <strong>2026 Municipal Election Turnout Forecast:</strong>
+                    <span class="fc-stat" id="fullCardForecast">28.5%</span>
+                    <span class="fc-ci">(90% Credible Interval: <span id="fullCardForecastCI">23.0% – 34.0%</span>)</span>
+                  </div>
+                  <span class="fc-note">Ridge Regression with Spatial Cross-Validation</span>
                 </div>
-                <button type="button" class="btn-ghost-sm" onclick="window.CivicApp.switchFullTab('simulator');">Simulate Intervention &rarr;</button>
+                <button type="button" class="btn-ghost-sm" onclick="window.CivicApp.switchFullTab('simulator');">Simulate Interventions &rarr;</button>
               </div>
 
               <!-- Voting Stations List Inside Ward -->
               <div class="wdc-vds-section">
-                <h4 class="vds-section-title">Voting Districts & Polling Stations in this Ward</h4>
+                <div class="vds-section-header">
+                  <h4 class="vds-section-title">Audited Voting Districts & Polling Stations in this Ward</h4>
+                  <span class="vds-count-tag" id="fullCardVdsCount">Polling Stations</span>
+                </div>
                 <div class="vds-table-wrap">
                   <table class="full-app-table" id="fullVdsTable">
                     <thead>
                       <tr>
                         <th>VD Number</th>
-                        <th>Station Name</th>
+                        <th>Station / Facility Name</th>
                         <th>Facility Type</th>
                         <th>Registered Voters</th>
+                        <th>Turnout %</th>
+                        <th>Infrastructure</th>
                       </tr>
                     </thead>
                     <tbody id="fullVdsTbody">
@@ -710,7 +855,14 @@
               <div class="comparator-header">
                 <div>
                   <h3 class="card-h3">Side-by-Side Ward Comparator</h3>
-                  <p class="card-sub">Select any two Gauteng wards to benchmark participation gaps, winning parties, deprivation scores, and tent infrastructure.</p>
+                  <p class="card-sub">Select any two wards nationwide to benchmark participation gaps, winning parties, deprivation scores, and tent infrastructure deficits.</p>
+                </div>
+                <div class="comparator-preset-chips">
+                  <span class="comp-preset-label">Quick Presets:</span>
+                  <button type="button" class="comp-chip" onclick="window.CivicApp.setComparatorPreset('high-low');">High vs Low Deprivation</button>
+                  <button type="button" class="comp-chip" onclick="window.CivicApp.setComparatorPreset('cross-prov');">Tshwane vs Cape Town</button>
+                  <button type="button" class="comp-chip" onclick="window.CivicApp.setComparatorPreset('soweto-umlazi');">Soweto vs Umlazi</button>
+                  <button type="button" class="comp-chip" onclick="window.CivicApp.setComparatorPreset('tent-deficit');">Canvas Tent vs Permanent</button>
                 </div>
               </div>
 
@@ -737,7 +889,7 @@
                       <th>Metric</th>
                       <th id="compHeaderA">Ward A</th>
                       <th id="compHeaderB">Ward B</th>
-                      <th>Variance / Impact</th>
+                      <th>Variance / Empirical Impact</th>
                     </tr>
                   </thead>
                   <tbody id="compTableTbody">

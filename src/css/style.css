@@ -4538,3 +4538,855 @@ select {
     height: calc(100vh - 100px);
   }
 }
+
+/* ==========================================================================
+   Ward Explorer & Multi-Province Diagnostics System
+   ========================================================================== */
+
+.ward-explorer-header {
+  margin-bottom: 20px;
+}
+
+.weh-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.weh-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  margin: 0 0 6px 0;
+  font-family: var(--font-display);
+}
+
+.weh-desc {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  max-width: 820px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 1. Province Quick Switcher Pills */
+.province-quick-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 14px 2px;
+  margin-bottom: 16px;
+  scrollbar-width: thin;
+}
+
+.province-quick-pills::-webkit-scrollbar {
+  height: 4px;
+}
+
+.province-quick-pills::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.prov-pill {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--font-sans);
+  user-select: none;
+}
+
+.prov-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.prov-pill.active {
+  background: rgba(37, 99, 235, 0.16);
+  border-color: #3b82f6;
+  color: #60a5fa;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
+}
+
+.prov-flag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+
+.prov-pill.active .prov-flag {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.prov-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.prov-count {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.prov-pill.active .prov-count {
+  color: #93c5fd;
+}
+
+[data-theme="light"] .prov-pill {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #475569;
+}
+
+[data-theme="light"] .prov-pill:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+[data-theme="light"] .prov-pill.active {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: #2563eb;
+  color: #1d4ed8;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="light"] .prov-flag {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+[data-theme="light"] .prov-pill.active .prov-flag {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* 2. Provincial Overview Snapshot Banner */
+.provincial-snapshot-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid var(--border-card);
+  backdrop-filter: blur(14px);
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s ease;
+}
+
+.psb-left {
+  display: flex;
+  align-items: center;
+}
+
+.psb-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.psb-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.15rem;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  flex-shrink: 0;
+}
+
+.psb-prov-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 3px 0;
+  font-family: var(--font-display);
+}
+
+.psb-prov-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.psb-stats-grid {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.psb-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.psb-stat-lbl {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.psb-stat-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  line-height: 1.1;
+}
+
+.psb-stat-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .provincial-snapshot-banner {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* 3. Ward Filter Card */
+.ward-filter-card {
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.wfc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wfc-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wfc-icon {
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+}
+
+.wfc-title-group h4 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.wfc-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wfc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 1.5fr;
+  gap: 14px;
+}
+
+.wfc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wfc-field label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.wfc-full-width {
+  grid-column: 1 / -1;
+}
+
+.wfc-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.wfc-search-ico {
+  position: absolute;
+  left: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.wfc-input-wrapper input {
+  padding-left: 36px;
+  padding-right: 32px;
+  width: 100%;
+}
+
+.wfc-clear-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.15rem;
+  cursor: pointer;
+  display: none;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.wfc-clear-btn:hover {
+  color: var(--text-main);
+}
+
+.custom-select,
+.custom-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  color: var(--text-main);
+  padding: 9px 12px;
+  font-size: 0.86rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.custom-select:focus,
+.custom-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* 4. Active Ward Detail Card */
+.ward-detail-card {
+  padding: 24px;
+  border-radius: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  margin-bottom: 26px;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.2s ease;
+}
+
+.wdc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.wdc-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ward-id-pill {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.92rem;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-card);
+  color: var(--text-main);
+  letter-spacing: 0.04em;
+}
+
+.wdc-metro-name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.wdc-locality-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+}
+
+.wdc-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Metrics Quad */
+.wdc-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.wdc-m-box {
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.wdc-m-box:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.wdc-m-lbl {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.wdc-m-val {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.wdc-m-sub {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+/* 2026 Forecast Banner */
+.wdc-forecast-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.fc-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.fc-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fc-main-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.fc-stat {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #60a5fa;
+  font-family: var(--font-display);
+}
+
+.fc-ci {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.fc-note {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+/* Voting Districts & Polling Stations Table Section */
+.wdc-vds-section {
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.vds-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.vds-section-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.vds-count-tag {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.vds-table-wrap {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] .vds-table-wrap {
+  background: #f8fafc;
+}
+
+.full-app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.full-app-table th {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+[data-theme="light"] .full-app-table th {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.full-app-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.full-app-table tr:last-child td {
+  border-bottom: none;
+}
+
+.full-app-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 5. Comparator Card Styles */
+.comparator-card {
+  padding: 24px;
+  border-radius: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-md);
+}
+
+.comparator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.card-h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+  font-family: var(--font-display);
+}
+
+.card-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 650px;
+}
+
+.comparator-preset-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.comp-preset-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.comp-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.comp-chip:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .comp-chip {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #475569;
+}
+
+[data-theme="light"] .comp-chip:hover {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.comparator-controls-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.comp-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.comp-col label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.comp-vs-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+}
+
+.comparator-table-wrap {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.comp-table th {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Party Badge Color Variants */
+.winner-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+
+.party-da {
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+.party-anc {
+  background: rgba(234, 179, 8, 0.18) !important;
+  color: #facc15 !important;
+  border-color: rgba(234, 179, 8, 0.4) !important;
+}
+
+.party-eff {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.party-ifp {
+  background: rgba(185, 28, 28, 0.18) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(185, 28, 28, 0.4) !important;
+}
+
+.party-actionsa {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.party-pa {
+  background: rgba(5, 150, 105, 0.18) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(5, 150, 105, 0.4) !important;
+}
+
+.party-mkp {
+  background: rgba(202, 138, 4, 0.18) !important;
+  color: #fde047 !important;
+  border-color: rgba(202, 138, 4, 0.4) !important;
+}
+
+.party-vfplus {
+  background: rgba(234, 88, 12, 0.18) !important;
+  color: #fb923c !important;
+  border-color: rgba(234, 88, 12, 0.4) !important;
+}
+
+/* Light Theme Party Badge adjustments */
+[data-theme="light"] .party-da {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+[data-theme="light"] .party-anc {
+  background: #fefce8 !important;
+  color: #a16207 !important;
+  border-color: #fef08a !important;
+}
+
+[data-theme="light"] .party-eff {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
+[data-theme="light"] .party-ifp {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fecaca !important;
+}
+
+[data-theme="light"] .party-actionsa {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+/* Responsive Breakpoints for Ward Explorer */
+@media (max-width: 1024px) {
+  .wfc-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .wdc-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .wfc-grid {
+    grid-template-columns: 1fr;
+  }
+  .wdc-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .comparator-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .comp-vs-badge {
+    align-self: center;
+  }
+  .psb-stats-grid {
+    gap: 14px;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
