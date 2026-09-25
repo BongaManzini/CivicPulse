@@ -4825,7 +4825,7 @@ select {
 
 .wfc-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr) 1.5fr;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
   gap: 14px;
 }
 
@@ -5360,6 +5360,493 @@ select {
   border-color: #a7f3d0 !important;
 }
 
+[data-theme="light"] .party-pa {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+
+[data-theme="light"] .party-mkp {
+  background: #fefce8 !important;
+  color: #854d0e !important;
+  border-color: #fef08a !important;
+}
+
+[data-theme="light"] .party-vfplus {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  border-color: #ffedd5 !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. Multi-Party Vote Share Section
+   -------------------------------------------------------------------------- */
+.wdc-party-section {
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 22px;
+  transition: all 0.2s ease;
+}
+
+.wdc-party-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wdc-party-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wdc-party-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.wdc-party-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Proportional Stacked Multi-Party Bar */
+.party-share-bar-container {
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.party-bar-segment {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  position: relative;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.party-bar-segment:hover {
+  filter: brightness(1.15);
+}
+
+/* Party Breakdown Grid / Chips */
+.party-share-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.party-chip-card {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.party-chip-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.pcc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pcc-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pcc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pcc-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.pcc-status-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.pcc-numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.pcc-pct {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--text-main);
+}
+
+.pcc-votes {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   7. Ward Risk & Civic Vulnerability Diagnostic Panel
+   -------------------------------------------------------------------------- */
+.wdc-risk-diagnostic-box {
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  margin-bottom: 22px;
+  transition: all 0.25s ease;
+}
+
+.wdc-risk-diagnostic-box.risk-high {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.wdc-risk-diagnostic-box.risk-medium {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.wdc-risk-diagnostic-box.risk-low {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.wrd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wrd-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wrd-icon-alert {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.wrd-icon-alert.icon-med {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.wrd-icon-alert.icon-low {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.wrd-title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.wrd-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 1px;
+}
+
+.wrd-content-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 16px;
+}
+
+.wrd-narrative-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wrd-narrative-card,
+.wrd-intervention-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+}
+
+.wrd-nc-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.wrd-narrative-text {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.wrd-intervention-card {
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.wrd-intervention-text {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #93c5fd;
+  margin: 0;
+}
+
+.wrd-indicators-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wrd-indicator-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wrd-indicator-row {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wir-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wir-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.wir-val {
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.wrd-ind-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.wrd-ind-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.wir-note {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+/* --------------------------------------------------------------------------
+   8. Ward Demographics & Municipal Governance Context Quad
+   -------------------------------------------------------------------------- */
+.wdc-muni-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.muni-prof-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.muni-prof-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.mpc-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mpc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mpc-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.mpc-val {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.mpc-detail {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.mpc-badge {
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Light Theme overrides for new components */
+[data-theme="light"] .wdc-party-section {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .party-share-bar-container {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .party-chip-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .wdc-risk-diagnostic-box {
+  background: #fff5f5;
+  border-color: #fed7d7;
+}
+
+[data-theme="light"] .wdc-risk-diagnostic-box.risk-medium {
+  background: #fffaf0;
+  border-color: #feebc8;
+}
+
+[data-theme="light"] .wdc-risk-diagnostic-box.risk-low {
+  background: #f0fff4;
+  border-color: #c6f6d5;
+}
+
+[data-theme="light"] .wrd-narrative-card,
+[data-theme="light"] .wrd-indicator-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .wrd-intervention-card {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+[data-theme="light"] .wrd-intervention-text {
+  color: #1e40af;
+}
+
+[data-theme="light"] .muni-prof-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
 /* Responsive Breakpoints for Ward Explorer */
 @media (max-width: 1024px) {
   .wfc-grid {
@@ -5368,6 +5855,12 @@ select {
   .wdc-metrics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .wdc-muni-profile-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .wrd-content-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -5375,6 +5868,9 @@ select {
     grid-template-columns: 1fr;
   }
   .wdc-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .wdc-muni-profile-grid {
     grid-template-columns: 1fr;
   }
   .comparator-controls-row {
