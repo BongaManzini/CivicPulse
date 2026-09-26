@@ -5,6 +5,7 @@
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 class CivicPulseApp {
   constructor() {
@@ -53,6 +54,9 @@ class CivicPulseApp {
     this.gmapsSessionToken = null;
     this.gmapsSatelliteSessionToken = null;
     this.gmapsTerrainSessionToken = null;
+
+    // Mapbox GL JS Integration
+    this.mapboxToken = localStorage.getItem('civicpulse_mapbox_token') || '';
 
     // Policy Simulator State
     this.simState = {
@@ -766,6 +770,36 @@ class CivicPulseApp {
         tileUrl = `https://tile.googleapis.com/tile/v1/tiles/{z}/{x}/{y}?session=${this.gmapsTerrainSessionToken}&key=${apiKey}`;
         attribution = '&copy; Google Maps Platform · Terrain &copy; Google';
       }
+    } else if (this.spatialTileStyle === 'mapbox_dark') {
+      const token = this.mapboxToken;
+      if (!token) {
+        this.showToast('Please set your Mapbox Access Token to use Mapbox Dark.');
+        this.promptMapboxToken();
+      }
+      if (this.mapboxToken) {
+        tileUrl = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=${this.mapboxToken}`;
+        attribution = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+      }
+    } else if (this.spatialTileStyle === 'mapbox_satellite') {
+      const token = this.mapboxToken;
+      if (!token) {
+        this.showToast('Please set your Mapbox Access Token to use Mapbox Satellite.');
+        this.promptMapboxToken();
+      }
+      if (this.mapboxToken) {
+        tileUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token=${this.mapboxToken}`;
+        attribution = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; Maxar';
+      }
+    } else if (this.spatialTileStyle === 'mapbox_streets') {
+      const token = this.mapboxToken;
+      if (!token) {
+        this.showToast('Please set your Mapbox Access Token to use Mapbox Streets.');
+        this.promptMapboxToken();
+      }
+      if (this.mapboxToken) {
+        tileUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${this.mapboxToken}`;
+        attribution = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+      }
     } else if (this.spatialTileStyle === 'streets') {
       tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
       attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
@@ -802,7 +836,17 @@ class CivicPulseApp {
   }
 
   toggleSpatialTileStyle() {
-    const styles = ['auto', 'google_roadmap', 'google_satellite', 'google_terrain', 'dark', 'streets'];
+    const styles = [
+      'auto',
+      'google_roadmap',
+      'google_satellite',
+      'google_terrain',
+      'mapbox_dark',
+      'mapbox_satellite',
+      'mapbox_streets',
+      'dark',
+      'streets'
+    ];
     const currIdx = styles.indexOf(this.spatialTileStyle);
     this.spatialTileStyle = styles[(currIdx + 1) % styles.length];
 
@@ -811,7 +855,10 @@ class CivicPulseApp {
       'google_roadmap': 'Style: Google Roadmap',
       'google_satellite': 'Style: Google Satellite',
       'google_terrain': 'Style: Google Terrain',
-      'dark': 'Style: Dark Canvas',
+      'mapbox_dark': 'Style: Mapbox Dark v11',
+      'mapbox_satellite': 'Style: Mapbox Satellite',
+      'mapbox_streets': 'Style: Mapbox Streets v12',
+      'dark': 'Style: CartoDB Dark',
       'streets': 'Style: OSM Streets'
     };
     const labelEl = document.getElementById('mapStyleLabel');
@@ -819,6 +866,24 @@ class CivicPulseApp {
 
     this.setSpatialTileLayer();
     this.showToast(`Map style: ${labelMap[this.spatialTileStyle]}`);
+  }
+
+  promptMapboxToken() {
+    const current = this.mapboxToken || '';
+    const input = prompt("Enter your Mapbox Public Access Token (starts with pk.eyJ...):", current);
+    if (input !== null) {
+      const trimmed = input.trim();
+      this.mapboxToken = trimmed;
+      localStorage.setItem('civicpulse_mapbox_token', trimmed);
+      const label = document.getElementById('mapboxBtnLabel');
+      if (label) {
+        label.textContent = trimmed ? 'Mapbox: Active' : 'Mapbox: Set Key';
+      }
+      this.showToast(trimmed ? 'Mapbox Access Token saved!' : 'Mapbox Token cleared.');
+      if (trimmed && this.spatialTileStyle.startsWith('mapbox')) {
+        this.setSpatialTileLayer();
+      }
+    }
   }
 
   getSpatialWards() {
