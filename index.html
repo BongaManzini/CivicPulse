@@ -490,111 +490,394 @@
 
           <!-- ================= TAB 2: SPATIAL MAP & GIS HOTSPOTS ================= -->
           <section class="full-tab-pane" id="paneMap">
-            <h1 class="sr-only">Gauteng Spatial Deprivation &amp; Turnout Map</h1>
-            <div class="map-layout-grid">
-              <div class="map-main-column">
-                <div class="full-card">
-                  <div class="map-toolbar-row">
-                    <div>
-                      <h2 class="card-h2">Gauteng Spatial Deprivation & Turnout Map</h2>
-                      <p class="card-sub">Choropleth spatial distribution across Tshwane, Johannesburg, and Ekurhuleni with 203 temporary tent voting stations.</p>
-                    </div>
+            <h1 class="sr-only">South Africa Spatial Electoral Geography &amp; Infrastructure GIS Platform</h1>
+            
+            <!-- Spatial Platform Header -->
+            <div class="spatial-page-header">
+              <div class="spatial-header-titles">
+                <div class="spatial-badge-row">
+                  <span class="badge-mini badge-blue">GIS Electoral Geography</span>
+                  <span class="badge-mini badge-green" id="spatialActiveProvinceBadge">Gauteng Active</span>
+                  <span class="badge-mini badge-cyan" id="spatialGmapsBadge">&#127758; Google Maps Platform Active</span>
+                  <span class="badge-mini badge-purple" id="spatialTotalWardsBadge">354 Wards</span>
+                  <span class="badge-mini badge-amber" id="spatialTentCountBadge">203 Canvas Tents</span>
+                </div>
+                <h2 class="card-h2">Spatial Electoral Geography & Infrastructure GIS Platform</h2>
+                <p class="card-sub">
+                  Interactive real-world GIS mapping South African municipal wards, voting districts, multi-party pluralities, socio-economic deprivation, and 203 temporary canvas tent polling stations.
+                </p>
+              </div>
+              <div class="spatial-header-actions">
+                <button type="button" class="btn-primary-action" id="btnOpenCsvImporter" onclick="window.CivicApp.openCsvModal();" aria-label="Input and visualize custom CSV dataset">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Input Custom CSV</span>
+                </button>
+                <button type="button" class="btn-ghost-action" id="btnToggleMethodologyGuide" onclick="window.CivicApp.toggleMethodologyGuide();" aria-label="Toggle Spatial Methodology and Guide">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  <span>Understanding This Page</span>
+                </button>
+              </div>
+            </div>
 
-                    <div class="map-layer-selector">
-                      <label for="fullMapLayerSelect">Visual Layer:</label>
-                      <select id="fullMapLayerSelect" class="custom-select select-sm" onchange="window.CivicApp.onMapLayerChange(this.value);">
-                        <option value="deprivation">Deprivation Score (Socio-Economic Stress)</option>
-                        <option value="turnout">Turnout 2021 (Overall Participation)</option>
-                        <option value="youth">Youth Participation (18-29 Cohort)</option>
-                      </select>
+            <!-- Executive Spatial KPI Strip -->
+            <div class="spatial-kpi-strip">
+              <div class="spatial-kpi-card">
+                <span class="spatial-kpi-label">Active Territory</span>
+                <span class="spatial-kpi-val" id="kpiSpatialTerritory">Gauteng</span>
+                <span class="spatial-kpi-sub" id="kpiSpatialWardsCount">354 Wards · 2,268 Voting Districts</span>
+              </div>
+              <div class="spatial-kpi-card">
+                <span class="spatial-kpi-label">Party Plurality Distribution</span>
+                <div class="spatial-party-meter" id="kpiPartyMeter" title="Proportional distribution of winning parties across mapped wards">
+                  <div class="spatial-party-seg" style="width: 42%; background: #2563eb;" title="DA: 42%"></div>
+                  <div class="spatial-party-seg" style="width: 40%; background: #ca8a04;" title="ANC: 40%"></div>
+                  <div class="spatial-party-seg" style="width: 12%; background: #059669;" title="ActionSA: 12%"></div>
+                  <div class="spatial-party-seg" style="width: 6%; background: #dc2626;" title="EFF: 6%"></div>
+                </div>
+                <div class="spatial-party-legend-inline" id="kpiPartyLegendInline">
+                  <span class="spatial-party-pill"><span class="spatial-party-dot" style="background:#2563eb;"></span>DA: 148</span>
+                  <span class="spatial-party-pill"><span class="spatial-party-dot" style="background:#ca8a04;"></span>ANC: 142</span>
+                  <span class="spatial-party-pill"><span class="spatial-party-dot" style="background:#059669;"></span>ActionSA: 42</span>
+                  <span class="spatial-party-pill"><span class="spatial-party-dot" style="background:#dc2626;"></span>EFF: 22</span>
+                </div>
+              </div>
+              <div class="spatial-kpi-card">
+                <span class="spatial-kpi-label">Average Voter Turnout</span>
+                <span class="spatial-kpi-val text-primary" id="kpiSpatialMeanTurnout">47.4%</span>
+                <span class="spatial-kpi-sub" id="kpiSpatialTurnoutSub">Dispersion: 21.4% to 78.9%</span>
+              </div>
+              <div class="spatial-kpi-card">
+                <span class="spatial-kpi-label">Swing Battlegrounds</span>
+                <span class="spatial-kpi-val text-amber" id="kpiSpatialSwingCount">47 Wards</span>
+                <span class="spatial-kpi-sub">Victory Margin &lt; 5.0 pp</span>
+              </div>
+              <div class="spatial-kpi-card">
+                <span class="spatial-kpi-label">Canvas Tent Hotspots</span>
+                <span class="spatial-kpi-val text-danger" id="kpiSpatialTentCount">203 Tents</span>
+                <span class="spatial-kpi-sub">134 Wards with temporary stations</span>
+              </div>
+            </div>
+
+            <!-- "Understanding This Page" Interactive Methodology & Insights Guide -->
+            <div class="spatial-methodology-card" id="spatialMethodologyGuide" style="display: none;">
+              <div class="smg-header">
+                <div>
+                  <span class="badge-mini badge-cyan">Platform Spatial Guide</span>
+                  <h3 class="smg-title">How to Interpret South African Spatial Electoral & Deprivation Data</h3>
+                  <p class="card-sub" style="margin-top: 4px;">A foundational walkthrough explaining electoral geography, voter turnout patterns, infrastructure stress, and spatial modeling.</p>
+                </div>
+                <button type="button" class="btn-icon-close" onclick="window.CivicApp.toggleMethodologyGuide();" aria-label="Close Guide">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+
+              <div class="smg-tabs" role="tablist" aria-label="Spatial Guide Sections">
+                <button type="button" class="smg-tab active" data-smgtab="1" onclick="window.CivicApp.switchGuideTab(1);">1. Electoral Geography 101</button>
+                <button type="button" class="smg-tab" data-smgtab="2" onclick="window.CivicApp.switchGuideTab(2);">2. The 203 Canvas Tents Effect</button>
+                <button type="button" class="smg-tab" data-smgtab="3" onclick="window.CivicApp.switchGuideTab(3);">3. Spatial Autocorrelation &amp; ML</button>
+                <button type="button" class="smg-tab" data-smgtab="4" onclick="window.CivicApp.switchGuideTab(4);">4. Key Metrics Glossary</button>
+              </div>
+
+              <div class="smg-tab-content" id="smgTabContent">
+                <!-- Tab 1: Electoral Geography 101 -->
+                <div class="smg-tab-pane active" id="smgPane1">
+                  <div class="smg-guide-grid">
+                    <div class="smg-feature-box">
+                      <h4>Spatial Segregation & Voting Clustering</h4>
+                      <p>Voting behavior in South African metropolitan areas exhibits strong spatial autocorrelation. Historical residential segregation creates distinct electoral zones: affluent suburbs (high DA vote share, high participation ~65-75%), established townships (ANC/EFF/ActionSA multi-party contestation, mid turnout ~38-48%), and peri-urban informal settlements (severe voter abstention ~20-32%).</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Turnout as a Political Lever</h4>
+                      <p>In South Africa's proportional representation (PR) and ward split system, turnout differentials determine council control. When suburban turnout holds above 70% while township turnout drops below 35%, coalitions form and plurality swings dramatically even if registered demographics remain constant.</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Multi-Party Coalitions</h4>
+                      <p>In Gauteng's three key metros (Johannesburg, Tshwane, Ekurhuleni), no single party currently commands an outright majority. Spatial mapping reveals razor-thin victory margins (&lt;5%) across 47 battleground wards that decide municipal government stability.</p>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Large SVG Map Stage -->
-                  <div class="full-svg-map-wrapper">
-                    <div class="map-hud-legend">
-                      <span class="legend-dot low-risk"></span><span>High Participation</span>
-                      <span class="legend-dot med-risk"></span><span>Moderate Stress</span>
-                      <span class="legend-dot high-risk"></span><span>High Deprivation & Tents</span>
+                <!-- Tab 2: The 203 Canvas Tents Effect -->
+                <div class="smg-tab-pane" id="smgPane2" style="display: none;">
+                  <div class="smg-guide-grid">
+                    <div class="smg-feature-box">
+                      <h4>DIRISA Quantitative Discovery</h4>
+                      <p>A core finding of our DIRISA Datathon investigation is the severe electoral friction caused by temporary voting infrastructure. Across Gauteng, 203 voting districts operate in temporary canvas tents on dusty open fields without piped water, sanitation, or lighting.</p>
                     </div>
+                    <div class="smg-feature-box">
+                      <h4>The -14.8 pp Turnout Penalty</h4>
+                      <p>Regression analysis shows that holding socioeconomic deprivation constant, wards where voters must queue at temporary tents suffer an average <strong>14.8 percentage point deficit</strong> in voter turnout. Rain, wind, lack of seating, and perceived institutional neglect act as severe physical and psychological deterrents.</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Infrastructure Investment Fix</h4>
+                      <p>Replacing canvas tents with permanent community civic centers, mobile solar-powered voting units, and school facilities represents the single most cost-effective institutional intervention to restore voter dignity and democratic participation.</p>
+                    </div>
+                  </div>
+                </div>
 
-                    <svg viewBox="0 0 340 280" class="gauteng-map-svg full-map-scale" id="fullGautengMapSvg" role="region" aria-label="Interactive map of Gauteng metropolitan municipalities and tent stations">
-                      <!-- Background Outline of South Africa (subtle) -->
-                      <path d="M 30,190 C 20,130 50,70 120,40 C 180,20 270,30 310,90 C 330,130 320,200 280,240 C 220,280 90,260 30,190 Z" 
-                            fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="3,3"/>
+                <!-- Tab 3: Spatial Autocorrelation & ML -->
+                <div class="smg-tab-pane" id="smgPane3" style="display: none;">
+                  <div class="smg-guide-grid">
+                    <div class="smg-feature-box">
+                      <h4>Moran's I Spatial Autocorrelation</h4>
+                      <p>Standard machine learning benchmarks assume identically and independently distributed (i.i.d.) observations. However, spatial turnout data exhibits significant spatial clustering: <strong>Moran's I = 0.42 (p &lt; 0.001)</strong>. Neighbors vote like neighbors.</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Spatial 5-Fold Block Cross-Validation</h4>
+                      <p>Random train/test splits inadvertently cause data leakage because test wards neighbor training wards. To eliminate optimistic bias, CivicPulse implements <strong>Spatial Block Cross-Validation</strong>, partitioning data into contiguous geographic clusters. This ensures our 2026 forecast models truly generalize.</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Model Architecture: Random Forest &amp; Ridge</h4>
+                      <p>Our ensemble models combine Census 2022 deprivation indicators, historical 2016/2019/2021 turnout, and voting station infrastructure to generate calibrated 2026 participation forecasts with rigorous 90% confidence intervals.</p>
+                    </div>
+                  </div>
+                </div>
 
-                      <!-- Gauteng Province Focus Polygon -->
-                      <g class="metro-clusters">
-                        <!-- City of Tshwane (North cluster) -->
-                        <path id="fullPathTshwane" class="map-region-path" data-metro="Tshwane" tabindex="0" role="button" aria-label="City of Tshwane (click or press Enter to filter)"
-                              d="M 110,60 L 170,45 L 230,55 L 245,95 L 205,120 L 145,115 L 105,95 Z"
-                              fill="rgba(255, 255, 255, 0.2)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
-                        <text x="170" y="85" class="map-label" text-anchor="middle">TSHWANE</text>
-
-                        <!-- City of Johannesburg (South-West cluster) -->
-                        <path id="fullPathJhb" class="map-region-path" data-metro="Johannesburg" tabindex="0" role="button" aria-label="City of Johannesburg (click or press Enter to filter)"
-                              d="M 95,125 L 155,120 L 180,165 L 140,195 L 85,175 L 80,145 Z"
-                              fill="rgba(255, 255, 255, 0.14)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
-                        <text x="130" y="160" class="map-label" text-anchor="middle">JOHANNESBURG</text>
-
-                        <!-- Ekurhuleni (East cluster) -->
-                        <path id="fullPathEku" class="map-region-path" data-metro="Ekurhuleni" tabindex="0" role="button" aria-label="City of Ekurhuleni (click or press Enter to filter)"
-                              d="M 185,125 L 235,110 L 265,150 L 230,185 L 175,170 Z"
-                              fill="rgba(255, 255, 255, 0.08)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
-                        <text x="220" y="150" class="map-label" text-anchor="middle">EKURHULENI</text>
-
-                        <!-- High Risk Hotspot Points (Tent Stations) -->
-                        <circle cx="145" cy="80" r="5" class="hotspot-pulse" title="Mamelodi / Eersterust Tents"/>
-                        <circle cx="185" cy="90" r="4.5" class="hotspot-pulse" title="Hammanskraal / Soshanguve"/>
-                        <circle cx="115" cy="155" r="5.5" class="hotspot-pulse" title="Soweto / Orange Farm"/>
-                        <circle cx="150" cy="145" r="4" class="hotspot-pulse" title="Alexandra / Riversands"/>
-                        <circle cx="210" cy="165" r="5" class="hotspot-pulse" title="Tembisa / Katlehong"/>
-                      </g>
-                    </svg>
-
-                    <!-- Interactive Map Tooltip -->
-                    <div class="map-tooltip" id="fullMapTooltip">
-                      <div class="tooltip-title" id="fullTooltipMetro">City of Tshwane</div>
-                      <div class="tooltip-stat">Deprivation: <strong id="fullTooltipScore">High (0.84)</strong></div>
-                      <div class="tooltip-stat">Youth Turnout: <strong id="fullTooltipTurnout">21.4%</strong></div>
+                <!-- Tab 4: Key Metrics Glossary -->
+                <div class="smg-tab-pane" id="smgPane4" style="display: none;">
+                  <div class="smg-guide-grid">
+                    <div class="smg-feature-box">
+                      <h4>ENP (Effective Number of Parties)</h4>
+                      <p>The Laakso-Taagepera index: \(N = 1 / \sum p_i^2\). Measures the degree of electoral fragmentation in a ward. An ENP of 1.5 indicates a dominant party; an ENP of 3.5+ reflects a fragmented multiparty battleground with coalition pressure.</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Victory Margin</h4>
+                      <p>The percentage difference in vote share between the winning party and the runner-up. Wards with a margin under 5.0% are classified as <em>High Risk / Swing Battlegrounds</em>, where small shifts in turnout flip the seat.</p>
+                    </div>
+                    <div class="smg-feature-box">
+                      <h4>Deprivation Score (0.0 to 1.0)</h4>
+                      <p>Composite index derived from Census 2022 indicators: absence of piped water, uncollected refuse, informal dwelling proportion, and youth unemployment. Q1 (&lt;0.25) is resilient/affluent; Q4 (&gt;0.70) reflects acute structural deprivation.</p>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Map Insight Sidebar Column -->
-              <div class="map-sidebar-column">
-                <div class="full-card">
-                  <h3 class="card-h3">Spatial Infrastructure Audit</h3>
-                  <p class="card-sub">Deficits identified in census and IEC polling station datasets.</p>
+            <!-- Spatial Controls Bento Bar -->
+            <div class="spatial-controls-bento">
+              <!-- Row 1: Province Switcher Pills -->
+              <div class="spatial-controls-row">
+                <div class="spatial-province-pills" id="spatialProvincePills" role="tablist" aria-label="Select Province for Spatial Map">
+                  <button type="button" class="spatial-prov-btn active" data-province="Gauteng" onclick="window.CivicApp.setSpatialProvince('Gauteng');">
+                    <span>Gauteng</span>
+                    <span class="spatial-prov-badge">354 Wards</span>
+                  </button>
+                  <button type="button" class="spatial-prov-btn" data-province="Western Cape" onclick="window.CivicApp.setSpatialProvince('Western Cape');">
+                    <span>Western Cape</span>
+                    <span class="spatial-prov-badge">116 Wards</span>
+                  </button>
+                  <button type="button" class="spatial-prov-btn" data-province="KwaZulu-Natal" onclick="window.CivicApp.setSpatialProvince('KwaZulu-Natal');">
+                    <span>KwaZulu-Natal</span>
+                    <span class="spatial-prov-badge">110 Wards</span>
+                  </button>
+                  <button type="button" class="spatial-prov-btn" data-province="Eastern Cape" onclick="window.CivicApp.setSpatialProvince('Eastern Cape');">
+                    <span>Eastern Cape</span>
+                    <span class="spatial-prov-badge">60 Wards</span>
+                  </button>
+                  <button type="button" class="spatial-prov-btn" id="btnCustomCsvPill" data-province="Custom CSV" onclick="window.CivicApp.setSpatialProvince('Custom CSV');" style="display: none;">
+                    <span>Custom CSV</span>
+                    <span class="spatial-prov-badge" id="customCsvCountBadge">0 Rows</span>
+                  </button>
+                </div>
 
-                  <div class="highlight-stat-box">
-                    <div class="h-stat-top">
-                      <span class="h-stat-title">Informal Settlements / Services</span>
-                      <span class="badge-mini badge-red">203 Tents</span>
-                    </div>
-                    <div class="h-stat-num text-danger">16%</div>
-                    <p class="h-stat-desc">
-                      16% of voting districts in extreme deprivation quartiles are conducted in temporary canvas tents without piped water or sanitation.
-                    </p>
+                <!-- Tools Row -->
+                <div class="spatial-tools-row">
+                  <button type="button" class="spatial-tool-btn active" id="btnToggleTents" onclick="window.CivicApp.toggleSpatialTents();" title="Toggle 203 Canvas Tent Voting Stations">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2z"></path><path d="M12 2v20"></path></svg>
+                    <span>203 Tents (On)</span>
+                  </button>
+                  <button type="button" class="spatial-tool-btn" id="btnMapStyleToggle" onclick="window.CivicApp.toggleSpatialTileStyle();" title="Toggle Base Map Tile Provider">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+                    <span id="mapStyleLabel">Style: Auto</span>
+                  </button>
+                  <button type="button" class="spatial-tool-btn" onclick="window.CivicApp.resetSpatialMapExtent();" title="Reset Map View Extent">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    <span>Reset View</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Row 2: Visual Layer, Party Filter, Municipality, and Area Search -->
+              <div class="spatial-controls-row">
+                <div class="spatial-filters-strip">
+                  <!-- Visual Layer Selector -->
+                  <div class="spatial-control-group">
+                    <label for="spatialLayerSelect">Layer:</label>
+                    <select id="spatialLayerSelect" class="custom-select select-sm" onchange="window.CivicApp.setSpatialMapLayer(this.value);" aria-label="Select Choropleth Visual Metric Layer">
+                      <option value="winner" selected>Winning Political Party (Plurality)</option>
+                      <option value="turnout">Voter Turnout Rate (%)</option>
+                      <option value="margin">Victory Margin & Swing Battlegrounds (&lt;5%)</option>
+                      <option value="deprivation">Socio-Economic Deprivation Index (Q1-Q4)</option>
+                      <option value="tents">Temporary Canvas Tent Stations &amp; Deficits</option>
+                      <option value="forecast">2026 Projected Turnout (ML Forecast)</option>
+                    </select>
                   </div>
 
-                  <div class="highlight-stat-box">
-                    <div class="h-stat-top">
-                      <span class="h-stat-title">Piped Water Exclusion</span>
-                      <span class="badge-mini badge-amber">Service Friction</span>
-                    </div>
-                    <div class="h-stat-num text-accent">36%</div>
-                    <p class="h-stat-desc">
-                      36% of informal settlement households in high-deprivation wards lack on-site potable piped water connections.
-                    </p>
+                  <!-- Party Filter Selector -->
+                  <div class="spatial-control-group">
+                    <label for="spatialPartyFilter">Party:</label>
+                    <select id="spatialPartyFilter" class="custom-select select-sm" onchange="window.CivicApp.setSpatialPartyFilter(this.value);" aria-label="Filter Wards by Leading Political Party">
+                      <option value="all" selected>All Parties</option>
+                      <option value="DA">Democratic Alliance (DA)</option>
+                      <option value="ANC">African National Congress (ANC)</option>
+                      <option value="ActionSA">ActionSA</option>
+                      <option value="EFF">Economic Freedom Fighters (EFF)</option>
+                      <option value="MK">MK Party (uMkhonto weSizwe)</option>
+                      <option value="IFP">Inkatha Freedom Party (IFP)</option>
+                      <option value="PA">Patriotic Alliance (PA)</option>
+                      <option value="VF PLUS">Freedom Front Plus (VF+)</option>
+                      <option value="OTHER">Other / Independents</option>
+                    </select>
                   </div>
 
-                  <div class="map-meta-callout">
-                    <h4>Spatial Cross-Validation Note</h4>
-                    <p>
-                      Because neighbouring wards share geographic and socioeconomic conditions, standard random train/test splits leak autocorrelation. We employ <strong>Spatial 5-fold Block CV</strong> to ensure generalization.
-                    </p>
+                  <!-- Municipality Dropdown -->
+                  <div class="spatial-control-group">
+                    <label for="spatialMetroSelect">Municipality:</label>
+                    <select id="spatialMetroSelect" class="custom-select select-sm" onchange="window.CivicApp.setSpatialMetroFilter(this.value);" aria-label="Filter by Municipality or Metropolitan Council">
+                      <option value="all" selected>All Municipalities</option>
+                      <option value="Johannesburg">City of Johannesburg</option>
+                      <option value="Tshwane">City of Tshwane</option>
+                      <option value="Ekurhuleni">City of Ekurhuleni</option>
+                      <option value="Sedibeng">Sedibeng District</option>
+                      <option value="West Rand">West Rand District</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Live Search Box -->
+                <div class="spatial-search-box">
+                  <svg class="spatial-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <input type="text" id="spatialSearchInput" class="spatial-search-input" placeholder="Search ward (e.g. Soweto, Mamelodi, Sandton, 1)..." aria-label="Search ward by name or number" oninput="window.CivicApp.handleSpatialSearchInput(this.value);" onkeydown="if(event.key==='Enter') window.CivicApp.executeSpatialSearch();">
+                </div>
+              </div>
+            </div>
+
+            <!-- Spatial Map Stage & Sidebar Inspector Grid -->
+            <div class="spatial-map-grid">
+              <!-- Left Column: Real Interactive Leaflet GIS Map Canvas -->
+              <div class="spatial-map-stage-card">
+                <!-- Floating HUD Legend Box -->
+                <div class="spatial-hud-legend" id="spatialHudLegend">
+                  <div class="spatial-legend-title" id="spatialLegendTitle">Winning Party Plurality</div>
+                  <div class="spatial-legend-items" id="spatialLegendItems">
+                    <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#2563eb;"></span><span>DA (Democratic Alliance)</span></div>
+                    <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ca8a04;"></span><span>ANC (African National Congress)</span></div>
+                    <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#059669;"></span><span>ActionSA</span></div>
+                    <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#dc2626;"></span><span>EFF (Economic Freedom Fighters)</span></div>
+                    <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#064e3b;"></span><span>MK Party (uMkhonto weSizwe)</span></div>
+                    <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#854d0e;"></span><span>PA / Other</span></div>
+                  </div>
+                </div>
+
+                <!-- Leaflet Real Geographic Map -->
+                <div id="spatialLeafletMap" class="spatial-leaflet-map" role="region" aria-label="Interactive Leaflet spatial map of municipal wards, political parties, and voting infrastructure"></div>
+              </div>
+
+              <!-- Right Column: Interactive Ward Deep-Dive Inspector Panel -->
+              <div class="spatial-sidebar-col">
+                <div class="spatial-inspector-card" id="spatialWardInspectorCard">
+                  <div class="spatial-inspector-header">
+                    <div>
+                      <span class="badge-mini badge-blue" id="siWardMetroBadge">City of Tshwane</span>
+                      <h3 class="spatial-inspector-title" id="siWardTitle">Ward 79900059</h3>
+                      <p class="spatial-inspector-locality" id="siWardLocality">Hammanskraal West / Temba</p>
+                    </div>
+                    <div id="siWinnerBadgeWrap">
+                      <span class="spatial-popup-winner-badge" style="background:#2563eb;" id="siWinnerBadge">DA Plurality</span>
+                    </div>
+                  </div>
+
+                  <!-- Multi-Party Vote Share Breakdown Bars -->
+                  <div>
+                    <span class="spatial-kpi-label">Party Vote Share Breakdown</span>
+                    <div class="spatial-party-bars-list" id="siPartyBarsList">
+                      <div class="spatial-party-bar-row">
+                        <div class="spatial-pbr-top"><span>DA</span><strong id="siShareDA">42.5%</strong></div>
+                        <div class="spatial-pbr-track"><div class="spatial-pbr-fill" id="siBarDA" style="width: 42.5%; background: #2563eb;"></div></div>
+                      </div>
+                      <div class="spatial-party-bar-row">
+                        <div class="spatial-pbr-top"><span>ANC</span><strong id="siShareANC">28.5%</strong></div>
+                        <div class="spatial-pbr-track"><div class="spatial-pbr-fill" id="siBarANC" style="width: 28.5%; background: #ca8a04;"></div></div>
+                      </div>
+                      <div class="spatial-party-bar-row">
+                        <div class="spatial-pbr-top"><span>EFF</span><strong id="siShareEFF">21.0%</strong></div>
+                        <div class="spatial-pbr-track"><div class="spatial-pbr-fill" id="siBarEFF" style="width: 21.0%; background: #dc2626;"></div></div>
+                      </div>
+                      <div class="spatial-party-bar-row">
+                        <div class="spatial-pbr-top"><span>ActionSA</span><strong id="siShareActionSA">5.0%</strong></div>
+                        <div class="spatial-pbr-track"><div class="spatial-pbr-fill" id="siBarActionSA" style="width: 5.0%; background: #059669;"></div></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Key Electoral Numbers -->
+                  <div class="spatial-metrics-duo">
+                    <div class="spatial-metric-tile">
+                      <span class="spatial-metric-tile-lbl">Voter Turnout</span>
+                      <span class="spatial-metric-tile-val text-primary" id="siTurnoutVal">29.4%</span>
+                    </div>
+                    <div class="spatial-metric-tile">
+                      <span class="spatial-metric-tile-lbl">Victory Margin</span>
+                      <span class="spatial-metric-tile-val text-amber" id="siMarginVal">+14.0 pp</span>
+                    </div>
+                  </div>
+
+                  <div class="spatial-metrics-duo">
+                    <div class="spatial-metric-tile">
+                      <span class="spatial-metric-tile-lbl">Registered Voters</span>
+                      <span class="spatial-metric-tile-val" id="siRegisteredVal">18,920</span>
+                    </div>
+                    <div class="spatial-metric-tile">
+                      <span class="spatial-metric-tile-lbl">Deprivation Score</span>
+                      <span class="spatial-metric-tile-val text-danger" id="siDeprivationVal">0.82 (High)</span>
+                    </div>
+                  </div>
+
+                  <!-- Infrastructure Tent Indicator -->
+                  <div class="spatial-tent-flag-box" id="siTentBox">
+                    <span class="spatial-tent-flag-icon">&#9978;</span>
+                    <span class="spatial-tent-flag-text" id="siTentText">
+                      <strong>Temporary Tent Alert:</strong> 1 canvas tent voting station active in this ward (Kanana Informal Settlement).
+                    </span>
+                  </div>
+
+                  <!-- 2026 Machine Learning Forecast -->
+                  <div class="spatial-metric-tile" style="background: rgba(37, 99, 235, 0.05); border-color: rgba(37, 99, 235, 0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span class="spatial-metric-tile-lbl" style="color: var(--primary-accent);">2026 Forecast Turnout</span>
+                      <span class="badge-mini badge-blue">Ridge / RF</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 2px;">
+                      <span class="spatial-metric-tile-val" id="siForecastVal" style="color: var(--primary-accent);">28.5%</span>
+                      <span style="font-size: 0.72rem; color: var(--text-dim);" id="siForecastCi">90% CI: 23.0%–34.0%</span>
+                    </div>
+                  </div>
+
+                  <!-- Link to Deep-Dive Tab 3 -->
+                  <button type="button" class="spatial-inspector-action-btn" id="btnDeepDiveWardExplorer" onclick="window.CivicApp.inspectSelectedWardInExplorer();">
+                    <span>Inspect in National Ward Explorer</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+
+                <!-- Secondary Spatial Infrastructure Audit Callout -->
+                <div class="full-card" style="padding: 18px;">
+                  <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">Spatial Infrastructure Deficits</h4>
+                  <p class="card-sub" style="font-size: 0.75rem; margin-bottom: 12px;">IEC Gauteng Polling Stations &amp; Census 2022 correlation:</p>
+                  
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: var(--text-muted);">Voting in Canvas Tents</span>
+                      <strong class="text-danger">16% in Q4</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: var(--text-muted);">Informal Water Access Deficit</span>
+                      <strong class="text-accent">36% households</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: var(--text-muted);">Spatial Autocorrelation</span>
+                      <strong style="color: var(--primary-accent);">Moran's I = 0.42</strong>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2944,6 +3227,95 @@
         <a href="https://github.com/BongaManzini/CivicPulse" target="_blank" rel="noopener noreferrer" class="chat-footer-gh">GitHub Repo &rarr;</a>
       </div>
     </form>
+  </div>
+
+  <!-- ================= CSV INGESTION & DATASET IMPORTER MODAL ================= -->
+  <div class="csv-modal-overlay" id="modalCsvImporter" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="csvModalTitle">
+    <div class="csv-modal-dialog">
+      <div class="csv-modal-header">
+        <div>
+          <span class="badge-mini badge-blue">Dynamic GIS Ingestion</span>
+          <h3 class="csv-modal-title" id="csvModalTitle">Input &amp; Visualize Custom Electoral CSV</h3>
+        </div>
+        <button type="button" class="btn-icon-close" onclick="window.CivicApp.closeCsvModal();" aria-label="Close CSV Importer Modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="csv-modal-body">
+        <!-- File Dropzone -->
+        <div class="csv-dropzone" id="csvDropzone" onclick="document.getElementById('csvFileInput').click();">
+          <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display: none;" onchange="window.CivicApp.handleCsvFileInput(event);">
+          <svg class="csv-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <div class="csv-dropzone-title">Click to browse or drop your CSV file here</div>
+          <div class="csv-dropzone-hint">Supports any standard UTF-8 CSV with municipal wards, party vote shares, or spatial coordinates</div>
+        </div>
+
+        <!-- Preset One-Click Datasets & Template Download -->
+        <div class="csv-preset-row">
+          <span class="csv-preset-label">Quick Presets:</span>
+          <button type="button" class="csv-preset-btn" onclick="window.CivicApp.loadPresetCsv('western_cape');">
+            Western Cape Sample (10 Wards)
+          </button>
+          <button type="button" class="csv-preset-btn" onclick="window.CivicApp.loadPresetCsv('kzn');">
+            KZN Battleground (10 Wards)
+          </button>
+          <button type="button" class="csv-preset-btn" onclick="window.CivicApp.downloadCsvTemplate();">
+            Download Blank Template
+          </button>
+          <button type="button" class="csv-preset-btn" onclick="window.CivicApp.resetToOfficialGautengData();">
+            Reset to IEC Baseline (354)
+          </button>
+        </div>
+
+        <!-- Upload Status & Column Mapping Config (Shown once file selected) -->
+        <div id="csvMappingSection" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 800; color: var(--text-main); margin: 0;">Detected Columns &amp; Auto-Mapping</h4>
+            <span class="badge-mini badge-green" id="csvFileRowsBadge">0 Rows Detected</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px;">
+            <div>
+              <label for="csvMapColWard" style="font-size: 0.72rem; font-weight: 700; color: var(--text-dim); display: block; margin-bottom: 3px;">Ward ID / Name:</label>
+              <select id="csvMapColWard" class="custom-select select-sm" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label for="csvMapColWinner" style="font-size: 0.72rem; font-weight: 700; color: var(--text-dim); display: block; margin-bottom: 3px;">Winning Party:</label>
+              <select id="csvMapColWinner" class="custom-select select-sm" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label for="csvMapColTurnout" style="font-size: 0.72rem; font-weight: 700; color: var(--text-dim); display: block; margin-bottom: 3px;">Turnout Rate (%):</label>
+              <select id="csvMapColTurnout" class="custom-select select-sm" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label for="csvMapColDeprivation" style="font-size: 0.72rem; font-weight: 700; color: var(--text-dim); display: block; margin-bottom: 3px;">Deprivation (0-1):</label>
+              <select id="csvMapColDeprivation" class="custom-select select-sm" style="width: 100%;"></select>
+            </div>
+          </div>
+
+          <!-- Live Preview Table -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim);">Live Data Preview (First 5 Rows)</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);" id="csvFileNameDisplay"></span>
+            </div>
+            <div class="csv-preview-container" id="csvPreviewContainer">
+              <table class="csv-preview-table" id="csvPreviewTable">
+                <!-- Injected via JS -->
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="csv-modal-footer">
+        <button type="button" class="btn-ghost-action" onclick="window.CivicApp.closeCsvModal();">Cancel</button>
+        <button type="button" class="btn-primary-action" id="btnApplyCsvData" onclick="window.CivicApp.applyCustomCsvData();" disabled>
+          <span>Load &amp; Visualize on Map</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Notification element -->

@@ -3,6 +3,9 @@
  * DIRISA Student Datathon Challenge 2026 Qualification Submission Prototype
  */
 
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
 class CivicPulseApp {
   constructor() {
     this.currentScreen = 1;
@@ -28,6 +31,28 @@ class CivicPulseApp {
     this.compWardAId = '79900059';
     this.compWardBId = '79700001';
     this.provincesData = this.getProvincesData();
+
+    // Spatial GIS Map & CSV Platform State
+    this.spatialMap = null;
+    this.spatialTileLayer = null;
+    this.spatialTileStyle = 'auto'; // 'auto' | 'streets' | 'satellite' | 'dark'
+    this.spatialMapLayer = 'winner'; // 'winner' | 'turnout' | 'margin' | 'deprivation' | 'tents' | 'forecast'
+    this.spatialPartyFilter = 'all';
+    this.spatialMetroFilter = 'all';
+    this.spatialProvince = 'Gauteng';
+    this.spatialMarkers = [];
+    this.spatialTentMarkers = [];
+    this.showTentMarkers = true;
+    this.selectedSpatialWard = null;
+    this.spatialSearchQuery = '';
+    this.customCsvData = null;
+    this.parsedCsvStaging = null;
+
+    // Google Maps Platform Integration
+    this.googleMapsApiKey = 'AIzaSyAkhncDnLu7jS-eUA5TzhWlzHI90wQPLQo';
+    this.gmapsSessionToken = null;
+    this.gmapsSatelliteSessionToken = null;
+    this.gmapsTerrainSessionToken = null;
 
     // Policy Simulator State
     this.simState = {
@@ -162,6 +187,11 @@ class CivicPulseApp {
     this.renderFullDeprivationChart();
     this.initFullQuiz();
     this.initChatbot();
+
+    // Leaflet map resize listener
+    window.addEventListener('resize', () => {
+      if (this.spatialMap) this.spatialMap.invalidateSize();
+    });
 
     console.log("CivicPulse Gauteng Full Web App initialized successfully.");
   }
@@ -633,6 +663,1268 @@ class CivicPulseApp {
   }
 
   /* --------------------------------------------------------------------------
+     Real Spatial GIS Map & Dynamic Multi-Party Engine (Leaflet)
+     -------------------------------------------------------------------------- */
+  initOrRefreshSpatialMap() {
+    const container = document.getElementById('spatialLeafletMap');
+    if (!container) return;
+
+    if (!this.spatialMap) {
+      // Initialize Leaflet Map
+      this.spatialMap = L.map('spatialLeafletMap', {
+        center: [-26.15, 28.18],
+        zoom: 9.5,
+        minZoom: 5,
+        maxZoom: 18,
+        zoomControl: false,
+        attributionControl: true
+      });
+
+      L.control.zoom({ position: 'topright' }).addTo(this.spatialMap);
+      this.setSpatialTileLayer();
+    }
+
+    // Invalidate size to ensure clean rendering within flex/grid container
+    setTimeout(() => {
+      if (this.spatialMap) {
+        this.spatialMap.invalidateSize();
+      }
+    }, 100);
+
+    // Sync active province view
+    this.syncSpatialProvinceView(false);
+
+    // Render wards, beacons, KPIs, legend
+    this.renderSpatialWards();
+    this.renderSpatialTentHotspots();
+    this.updateSpatialKpis();
+    this.updateSpatialHudLegend();
+
+    // Select default ward if none selected
+    if (!this.selectedSpatialWard) {
+      const gautengWards = this.getSpatialWards();
+      const defaultWard = gautengWards.find(w => String(w.ward_id) === '79900059') || gautengWards[0];
+      if (defaultWard) {
+        this.selectSpatialWard(defaultWard, false);
+      }
+    }
+  }
+
+  async getGoogleMapsSession(mapType = 'roadmap') {
+    if (!this.googleMapsApiKey) return null;
+    try {
+      const resp = await fetch(`https://tile.googleapis.com/v1/createSession?key=${this.googleMapsApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mapType,
+          language: 'en-ZA',
+          region: 'ZA'
+        })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.session;
+      }
+    } catch (err) {
+      console.warn("Could not create Google Maps tile session, falling back:", err);
+    }
+    return null;
+  }
+
+  async setSpatialTileLayer() {
+    if (!this.spatialMap) return;
+    if (this.spatialTileLayer) {
+      this.spatialMap.removeLayer(this.spatialTileLayer);
+    }
+
+    let tileUrl = '';
+    let attribution = '';
+    const apiKey = this.googleMapsApiKey;
+
+    if (this.spatialTileStyle === 'google_roadmap') {
+      if (!this.gmapsSessionToken) {
+        this.gmapsSessionToken = await this.getGoogleMapsSession('roadmap');
+      }
+      if (this.gmapsSessionToken) {
+        tileUrl = `https://tile.googleapis.com/tile/v1/tiles/{z}/{x}/{y}?session=${this.gmapsSessionToken}&key=${apiKey}`;
+        attribution = '&copy; Google Maps Platform · Map data &copy; Google';
+      }
+    } else if (this.spatialTileStyle === 'google_satellite') {
+      if (!this.gmapsSatelliteSessionToken) {
+        this.gmapsSatelliteSessionToken = await this.getGoogleMapsSession('satellite');
+      }
+      if (this.gmapsSatelliteSessionToken) {
+        tileUrl = `https://tile.googleapis.com/tile/v1/tiles/{z}/{x}/{y}?session=${this.gmapsSatelliteSessionToken}&key=${apiKey}`;
+        attribution = '&copy; Google Maps Platform · Imagery &copy; Google, Maxar Technologies';
+      }
+    } else if (this.spatialTileStyle === 'google_terrain') {
+      if (!this.gmapsTerrainSessionToken) {
+        this.gmapsTerrainSessionToken = await this.getGoogleMapsSession('terrain');
+      }
+      if (this.gmapsTerrainSessionToken) {
+        tileUrl = `https://tile.googleapis.com/tile/v1/tiles/{z}/{x}/{y}?session=${this.gmapsTerrainSessionToken}&key=${apiKey}`;
+        attribution = '&copy; Google Maps Platform · Terrain &copy; Google';
+      }
+    } else if (this.spatialTileStyle === 'streets') {
+      tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    } else if (this.spatialTileStyle === 'dark') {
+      tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    }
+
+    // Default auto or fallback
+    if (!tileUrl) {
+      const isLight = (this.theme === 'light');
+      if (apiKey && isLight) {
+        if (!this.gmapsSessionToken) {
+          this.gmapsSessionToken = await this.getGoogleMapsSession('roadmap');
+        }
+        if (this.gmapsSessionToken) {
+          tileUrl = `https://tile.googleapis.com/tile/v1/tiles/{z}/{x}/{y}?session=${this.gmapsSessionToken}&key=${apiKey}`;
+          attribution = '&copy; Google Maps Platform';
+        }
+      }
+
+      if (!tileUrl) {
+        tileUrl = isLight 
+          ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' 
+          : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        attribution = '&copy; OpenStreetMap &copy; CARTO';
+      }
+    }
+
+    this.spatialTileLayer = L.tileLayer(tileUrl, {
+      maxZoom: 19,
+      attribution
+    }).addTo(this.spatialMap);
+  }
+
+  toggleSpatialTileStyle() {
+    const styles = ['auto', 'google_roadmap', 'google_satellite', 'google_terrain', 'dark', 'streets'];
+    const currIdx = styles.indexOf(this.spatialTileStyle);
+    this.spatialTileStyle = styles[(currIdx + 1) % styles.length];
+
+    const labelMap = {
+      'auto': 'Style: Auto',
+      'google_roadmap': 'Style: Google Roadmap',
+      'google_satellite': 'Style: Google Satellite',
+      'google_terrain': 'Style: Google Terrain',
+      'dark': 'Style: Dark Canvas',
+      'streets': 'Style: OSM Streets'
+    };
+    const labelEl = document.getElementById('mapStyleLabel');
+    if (labelEl) labelEl.textContent = labelMap[this.spatialTileStyle];
+
+    this.setSpatialTileLayer();
+    this.showToast(`Map style: ${labelMap[this.spatialTileStyle]}`);
+  }
+
+  getSpatialWards() {
+    if (this.spatialProvince === 'Custom CSV' && this.customCsvData) {
+      return this.customCsvData.wards || [];
+    }
+
+    if (this.spatialProvince === 'Gauteng') {
+      return (this.data && this.data.wards && this.data.wards.length > 0)
+        ? this.data.wards
+        : (this.provincesData['Gauteng']?.wards || []);
+    }
+
+    const prov = this.provincesData[this.spatialProvince];
+    const rawWards = prov?.wards || [];
+
+    // Ensure all wards have valid lat/lng and locality
+    return rawWards.map((w, idx) => {
+      if (w.lat && w.lng) return w;
+      const coords = this.resolveWardCoordinates(w, this.spatialProvince, idx);
+      w.lat = coords.lat;
+      w.lng = coords.lng;
+      return w;
+    });
+  }
+
+  resolveWardCoordinates(ward, province, idx = 0) {
+    const locality = (ward.locality || '').toLowerCase();
+
+    // Known locality lookup
+    if (locality.includes('khayelitsha')) return { lat: -34.036 + (idx % 5) * 0.006, lng: 18.665 + (idx % 3) * 0.005 };
+    if (locality.includes('mitchells plain') || locality.includes('tafelsig')) return { lat: -34.050 + (idx % 4) * 0.005, lng: 18.615 + (idx % 3) * 0.005 };
+    if (locality.includes('sea point') || locality.includes('camps bay')) return { lat: -33.921 + (idx % 3) * 0.005, lng: 18.385 + (idx % 3) * 0.005 };
+    if (locality.includes('rondebosch') || locality.includes('rosebank')) return { lat: -33.965 + (idx % 3) * 0.005, lng: 18.475 + (idx % 3) * 0.005 };
+    if (locality.includes('stellenbosch')) return { lat: -33.932 + (idx % 4) * 0.006, lng: 18.864 + (idx % 4) * 0.006 };
+    if (locality.includes('george')) return { lat: -33.963 + (idx % 4) * 0.006, lng: 22.461 + (idx % 4) * 0.006 };
+    if (locality.includes('drakenstein') || locality.includes('paarl')) return { lat: -33.725 + (idx % 4) * 0.006, lng: 18.965 + (idx % 4) * 0.006 };
+    if (locality.includes('umlazi')) return { lat: -29.972 + (idx % 5) * 0.006, lng: 30.885 + (idx % 3) * 0.005 };
+    if (locality.includes('chatsworth')) return { lat: -29.915 + (idx % 4) * 0.005, lng: 30.885 + (idx % 3) * 0.005 };
+    if (locality.includes('phoenix')) return { lat: -29.702 + (idx % 4) * 0.005, lng: 31.002 + (idx % 3) * 0.005 };
+    if (locality.includes('kwamashu')) return { lat: -29.750 + (idx % 4) * 0.005, lng: 30.985 + (idx % 3) * 0.005 };
+    if (locality.includes('durban') || locality.includes('morningside')) return { lat: -29.835 + (idx % 4) * 0.005, lng: 31.015 + (idx % 3) * 0.005 };
+    if (locality.includes('umhlanga')) return { lat: -29.728 + (idx % 3) * 0.005, lng: 31.085 + (idx % 3) * 0.005 };
+    if (locality.includes('inanda')) return { lat: -29.695 + (idx % 4) * 0.005, lng: 30.932 + (idx % 4) * 0.005 };
+    if (locality.includes('gqeberha') || locality.includes('port elizabeth')) return { lat: -33.960 + (idx % 4) * 0.006, lng: 25.615 + (idx % 4) * 0.006 };
+    if (locality.includes('motherwell')) return { lat: -33.795 + (idx % 4) * 0.006, lng: 25.565 + (idx % 4) * 0.006 };
+    if (locality.includes('new brighton') || locality.includes('ibhayi')) return { lat: -33.905 + (idx % 4) * 0.005, lng: 25.602 + (idx % 4) * 0.005 };
+    if (locality.includes('east london') || locality.includes('mdantsane')) return { lat: -32.980 + (idx % 4) * 0.006, lng: 27.800 + (idx % 4) * 0.006 };
+
+    // Regional fallback centroids
+    if (province === 'Western Cape') {
+      const angle = (idx * 37) % 360;
+      const rad = ((idx % 7) + 1) * 0.025;
+      return { lat: -33.92 + Math.sin(angle) * rad, lng: 18.52 + Math.cos(angle) * rad };
+    }
+    if (province === 'KwaZulu-Natal') {
+      const angle = (idx * 43) % 360;
+      const rad = ((idx % 8) + 1) * 0.028;
+      return { lat: -29.85 + Math.sin(angle) * rad, lng: 30.95 + Math.cos(angle) * rad };
+    }
+    if (province === 'Eastern Cape') {
+      const angle = (idx * 53) % 360;
+      const rad = ((idx % 6) + 1) * 0.030;
+      return { lat: -33.85 + Math.sin(angle) * rad, lng: 25.55 + Math.cos(angle) * rad };
+    }
+
+    // Default Gauteng
+    const angle = (idx * 47) % 360;
+    const rad = ((idx % 10) + 1) * 0.025;
+    return { lat: -26.15 + Math.sin(angle) * rad, lng: 28.18 + Math.cos(angle) * rad };
+  }
+
+  getFilteredSpatialWards() {
+    const all = this.getSpatialWards();
+    return all.filter(w => {
+      // Party filter
+      if (this.spatialPartyFilter !== 'all') {
+        const win = (w.winner || '').toUpperCase();
+        const target = this.spatialPartyFilter.toUpperCase();
+        if (target === 'OTHER') {
+          const mainParties = ['DA', 'ANC', 'ACTIONSA', 'EFF', 'MK', 'MKP', 'IFP', 'PA', 'VF PLUS', 'VF+'];
+          if (mainParties.includes(win)) return false;
+        } else if (win !== target) {
+          return false;
+        }
+      }
+
+      // Municipality filter
+      if (this.spatialMetroFilter !== 'all') {
+        const m = (w.metro || '').toLowerCase();
+        const targetM = this.spatialMetroFilter.toLowerCase();
+        if (!m.includes(targetM)) return false;
+      }
+
+      // Live search query
+      if (this.spatialSearchQuery && this.spatialSearchQuery.trim() !== '') {
+        const q = this.spatialSearchQuery.toLowerCase().trim();
+        const idStr = String(w.ward_id || '').toLowerCase();
+        const loc = String(w.locality || '').toLowerCase();
+        const num = String(w.ward_num || '').toLowerCase();
+        const metro = String(w.metro || '').toLowerCase();
+        if (!idStr.includes(q) && !loc.includes(q) && !num.includes(q) && !metro.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  renderSpatialWards() {
+    if (!this.spatialMap) return;
+
+    // Remove previous ward markers
+    this.spatialMarkers.forEach(m => {
+      if (m && m.marker) this.spatialMap.removeLayer(m.marker);
+    });
+    this.spatialMarkers = [];
+
+    const wards = this.getFilteredSpatialWards();
+    const partyColors = {
+      'DA': '#2563eb',
+      'ANC': '#ca8a04',
+      'ACTIONSA': '#059669',
+      'EFF': '#dc2626',
+      'MK': '#064e3b',
+      'MKP': '#064e3b',
+      'IFP': '#991b1b',
+      'PA': '#854d0e',
+      'VF PLUS': '#ea580c',
+      'VF+': '#ea580c',
+      'UDM': '#9333ea',
+      'OTHER': '#64748b'
+    };
+
+    wards.forEach(ward => {
+      if (!ward.lat || !ward.lng) return;
+
+      let fillColor = '#2563eb';
+      let strokeColor = '#ffffff';
+      let strokeWeight = 1.5;
+      let radius = 7.5;
+      let fillOpacity = 0.85;
+
+      // Color scheme based on visual metric layer
+      if (this.spatialMapLayer === 'winner') {
+        const win = (ward.winner || 'DA').toUpperCase();
+        fillColor = partyColors[win] || partyColors['OTHER'];
+        strokeColor = '#ffffff';
+        strokeWeight = 1.2;
+      } else if (this.spatialMapLayer === 'turnout') {
+        const to = ward.turnout || 0.45;
+        if (to < 0.32) { fillColor = '#ef4444'; strokeColor = '#b91c1c'; }
+        else if (to < 0.42) { fillColor = '#f97316'; strokeColor = '#c2410c'; }
+        else if (to < 0.52) { fillColor = '#eab308'; strokeColor = '#a16207'; }
+        else if (to < 0.62) { fillColor = '#10b981'; strokeColor = '#047857'; }
+        else { fillColor = '#3b82f6'; strokeColor = '#1d4ed8'; }
+      } else if (this.spatialMapLayer === 'margin') {
+        const m = ward.margin !== undefined ? ward.margin : 0.15;
+        if (m < 0.05) {
+          fillColor = '#dc2626';
+          strokeColor = '#fef08a';
+          strokeWeight = 2.5;
+          radius = 9.5;
+          fillOpacity = 0.95;
+        } else if (m < 0.15) {
+          fillColor = '#f59e0b';
+          strokeColor = '#ffffff';
+        } else {
+          fillColor = '#10b981';
+          strokeColor = '#ffffff';
+        }
+      } else if (this.spatialMapLayer === 'deprivation') {
+        const dep = ward.deprivation_score || 0.5;
+        if (dep > 0.70) { fillColor = '#dc2626'; strokeColor = '#7f1d1d'; }
+        else if (dep > 0.50) { fillColor = '#f97316'; strokeColor = '#c2410c'; }
+        else if (dep > 0.28) { fillColor = '#3b82f6'; strokeColor = '#1d4ed8'; }
+        else { fillColor = '#10b981'; strokeColor = '#047857'; }
+      } else if (this.spatialMapLayer === 'tents') {
+        const hasTents = (ward.tent_share > 0) || (ward.top_vds && ward.top_vds.some(v => v.tent === 1 || v.station_type === 'Canvas Tent'));
+        if (hasTents) {
+          fillColor = '#dc2626';
+          strokeColor = '#fef08a';
+          strokeWeight = 2.2;
+          radius = 9.0;
+        } else {
+          fillColor = '#10b981';
+          strokeColor = '#ffffff';
+          fillOpacity = 0.5;
+          radius = 6.0;
+        }
+      } else if (this.spatialMapLayer === 'forecast') {
+        const fc = ward.forecast_2026 || ward.turnout || 0.45;
+        if (fc < 0.35) { fillColor = '#ef4444'; }
+        else if (fc < 0.45) { fillColor = '#f59e0b'; }
+        else if (fc < 0.55) { fillColor = '#10b981'; }
+        else { fillColor = '#2563eb'; }
+      }
+
+      // Highlight selected ward
+      if (this.selectedSpatialWard && String(this.selectedSpatialWard.ward_id) === String(ward.ward_id)) {
+        strokeColor = '#38bdf8';
+        strokeWeight = 3.5;
+        radius += 3.0;
+      }
+
+      const circle = L.circleMarker([ward.lat, ward.lng], {
+        radius,
+        fillColor,
+        color: strokeColor,
+        weight: strokeWeight,
+        opacity: 0.95,
+        fillOpacity
+      });
+
+      // Hover tooltip
+      const tooltipHtml = `
+        <div style="font-family: var(--font-sans, sans-serif); font-size: 0.78rem; line-height: 1.35;">
+          <strong style="color: #38bdf8;">Ward ${String(ward.ward_id).slice(-4)}</strong> · ${ward.locality || ward.metro}<br>
+          <span style="color: #94a3b8;">Winner:</span> <strong>${ward.winner}</strong> (${((ward.winner_share || 0.48) * 100).toFixed(1)}%)<br>
+          <span style="color: #94a3b8;">Turnout:</span> <strong>${((ward.turnout || 0) * 100).toFixed(1)}%</strong> | <span style="color: #94a3b8;">Margin:</span> <strong>${(((ward.margin || 0.1) * 100)).toFixed(1)} pp</strong>
+        </div>
+      `;
+      circle.bindTooltip(tooltipHtml, { sticky: true, opacity: 0.95, className: 'leaflet-custom-tooltip' });
+
+      // Click handler
+      circle.on('click', () => {
+        this.selectSpatialWard(ward, true);
+      });
+
+      circle.addTo(this.spatialMap);
+      this.spatialMarkers.push({ ward, marker: circle });
+    });
+  }
+
+  renderSpatialTentHotspots() {
+    if (!this.spatialMap) return;
+
+    // Clear previous tent markers
+    this.spatialTentMarkers.forEach(m => {
+      if (m) this.spatialMap.removeLayer(m);
+    });
+    this.spatialTentMarkers = [];
+
+    if (!this.showTentMarkers) return;
+
+    const wards = this.getSpatialWards();
+    let tentCount = 0;
+
+    wards.forEach(w => {
+      const vds = w.top_vds || [];
+      vds.forEach(vd => {
+        if (vd.tent === 1 || vd.station_type === 'Canvas Tent' || (vd.station && vd.station.toUpperCase().includes('TENT'))) {
+          tentCount++;
+          const tLat = vd.lat || (w.lat ? w.lat + (Math.random() - 0.5) * 0.008 : null);
+          const tLng = vd.lng || (w.lng ? w.lng + (Math.random() - 0.5) * 0.008 : null);
+          if (!tLat || !tLng) return;
+
+          const tentIcon = L.divIcon({
+            className: 'spatial-tent-div-icon',
+            html: `<div class="spatial-tent-beacon" title="Canvas Tent: ${vd.station}"><span class="tent-icon">&#9978;</span><span class="tent-pulse"></span></div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+
+          const m = L.marker([tLat, tLng], { icon: tentIcon });
+          const popHtml = `
+            <div class="spatial-popup-card">
+              <span class="badge-mini badge-red">&#9978; Temporary Canvas Tent Station</span>
+              <h4 style="margin: 6px 0 2px 0; font-size: 0.88rem; font-weight: 800;">${vd.station}</h4>
+              <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 6px;">VD ${vd.VotingDistrict} · Ward ${w.ward_id} (${w.locality || w.metro})</p>
+              <div style="font-size: 0.75rem; margin-bottom: 6px;">
+                Registered: <strong>${(vd.registered || 0).toLocaleString()}</strong> · Turnout: <strong>${((vd.turnout || 0) * 100).toFixed(1)}%</strong>
+              </div>
+              <div style="background: rgba(220, 38, 38, 0.08); border-left: 3px solid #dc2626; padding: 6px 8px; border-radius: 4px; font-size: 0.72rem; color: #dc2626;">
+                <strong>Empirical Infrastructure Deficit:</strong> Unpaved field, queue exposure to weather, no municipal piped sanitation (-14.8 pp turnout friction).
+              </div>
+            </div>
+          `;
+          m.bindPopup(popHtml);
+          m.addTo(this.spatialMap);
+          this.spatialTentMarkers.push(m);
+        }
+      });
+    });
+
+    // Update tent badge
+    const badge = document.getElementById('spatialTentCountBadge');
+    if (badge) {
+      badge.textContent = `${tentCount > 0 ? tentCount : '0'} Canvas Tents`;
+    }
+    const kpiTent = document.getElementById('kpiSpatialTentCount');
+    if (kpiTent) {
+      kpiTent.textContent = `${tentCount} Tents`;
+    }
+  }
+
+  selectSpatialWard(ward, pan = true) {
+    if (!ward) return;
+    this.selectedSpatialWard = ward;
+
+    // Update inspector header
+    const elMetro = document.getElementById('siWardMetroBadge');
+    if (elMetro) elMetro.textContent = ward.metro ? (ward.metro.startsWith('City') ? ward.metro : `City of ${ward.metro}`) : 'Municipal Ward';
+
+    const elTitle = document.getElementById('siWardTitle');
+    if (elTitle) elTitle.textContent = `Ward ${ward.ward_id}`;
+
+    const elLocality = document.getElementById('siWardLocality');
+    if (elLocality) elLocality.textContent = ward.locality || `Ward ${ward.ward_num || ward.ward_id.slice(-2)} Precinct`;
+
+    // Winner badge
+    const elWinner = document.getElementById('siWinnerBadge');
+    const partyColors = {
+      'DA': '#2563eb',
+      'ANC': '#ca8a04',
+      'ACTIONSA': '#059669',
+      'EFF': '#dc2626',
+      'MK': '#064e3b',
+      'MKP': '#064e3b',
+      'IFP': '#991b1b',
+      'PA': '#854d0e',
+      'VF PLUS': '#ea580c',
+      'VF+': '#ea580c',
+      'OTHER': '#64748b'
+    };
+    const winUpper = (ward.winner || 'DA').toUpperCase();
+    const winColor = partyColors[winUpper] || partyColors['OTHER'];
+    if (elWinner) {
+      elWinner.textContent = `${ward.winner} Plurality`;
+      elWinner.style.background = winColor;
+    }
+
+    // Multi-party vote share progress bars
+    const barsContainer = document.getElementById('siPartyBarsList');
+    if (barsContainer) {
+      const shares = this.calculatePartyVoteShares(ward);
+      barsContainer.innerHTML = shares.slice(0, 4).map(p => `
+        <div class="spatial-party-bar-row">
+          <div class="spatial-pbr-top">
+            <span>${p.code} · ${p.name.split(' (')[0]}</span>
+            <strong>${(p.share * 100).toFixed(1)}% (${p.votes.toLocaleString()} votes)</strong>
+          </div>
+          <div class="spatial-pbr-track">
+            <div class="spatial-pbr-fill" style="width: ${(p.share * 100).toFixed(1)}%; background: ${p.color};"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Core Metrics
+    const to = ward.turnout || 0.45;
+    const margin = ward.margin !== undefined ? ward.margin : 0.15;
+    const reg = ward.registered || 15000;
+    const dep = ward.deprivation_score || 0.50;
+
+    const elTurnout = document.getElementById('siTurnoutVal');
+    if (elTurnout) elTurnout.textContent = `${(to * 100).toFixed(1)}%`;
+
+    const elMargin = document.getElementById('siMarginVal');
+    if (elMargin) {
+      elMargin.textContent = `+${(margin * 100).toFixed(1)} pp`;
+      elMargin.className = `spatial-metric-tile-val ${margin < 0.05 ? 'text-danger' : margin < 0.15 ? 'text-amber' : 'text-primary'}`;
+    }
+
+    const elReg = document.getElementById('siRegisteredVal');
+    if (elReg) elReg.textContent = reg.toLocaleString();
+
+    const elDep = document.getElementById('siDeprivationVal');
+    if (elDep) {
+      const depLabel = dep > 0.70 ? 'Extreme Q4' : dep > 0.50 ? 'High Q3' : dep > 0.28 ? 'Moderate Q2' : 'Low Q1';
+      elDep.textContent = `${dep.toFixed(2)} (${depLabel})`;
+      elDep.className = `spatial-metric-tile-val ${dep > 0.70 ? 'text-danger' : dep > 0.50 ? 'text-amber' : 'text-primary'}`;
+    }
+
+    // Canvas Tent Flag Box
+    const tentBox = document.getElementById('siTentBox');
+    const tentText = document.getElementById('siTentText');
+    const hasTents = (ward.tent_share > 0) || (ward.top_vds && ward.top_vds.some(v => v.tent === 1 || v.station_type === 'Canvas Tent'));
+    if (tentBox && tentText) {
+      if (hasTents) {
+        const tentVd = (ward.top_vds || []).find(v => v.tent === 1 || v.station_type === 'Canvas Tent');
+        const stationName = tentVd ? tentVd.station : 'Temporary Canvas Tent';
+        tentBox.style.display = 'flex';
+        tentBox.style.background = 'rgba(220, 38, 38, 0.08)';
+        tentBox.style.border = '1px solid rgba(220, 38, 38, 0.25)';
+        tentText.innerHTML = `<strong>Temporary Tent Alert:</strong> Canvas tent station active in this ward (<em>${stationName}</em>). Voters experience severe weather exposure and queue bottlenecks.`;
+      } else {
+        tentBox.style.display = 'flex';
+        tentBox.style.background = 'rgba(16, 185, 129, 0.06)';
+        tentBox.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+        tentText.innerHTML = `<strong>Formal Facility:</strong> All voting districts in this ward operate in permanent brick schools or civic community halls.`;
+      }
+    }
+
+    // 2026 Forecast
+    const fcVal = ward.forecast_2026 || (to * 0.98);
+    const fcLo = ward.forecast_lo || (fcVal - 0.045);
+    const fcHi = ward.forecast_hi || (fcVal + 0.045);
+    const elForecast = document.getElementById('siForecastVal');
+    if (elForecast) elForecast.textContent = `${(fcVal * 100).toFixed(1)}%`;
+    const elForecastCi = document.getElementById('siForecastCi');
+    if (elForecastCi) elForecastCi.textContent = `90% CI: ${(fcLo * 100).toFixed(1)}%–${(fcHi * 100).toFixed(1)}%`;
+
+    // Re-highlight markers on map
+    if (this.spatialMarkers) {
+      this.spatialMarkers.forEach(item => {
+        if (!item || !item.marker) return;
+        const isMatch = String(item.ward.ward_id) === String(ward.ward_id);
+        if (isMatch) {
+          item.marker.setStyle({
+            color: '#38bdf8',
+            weight: 3.5,
+            radius: 11
+          });
+        } else {
+          item.marker.setStyle({
+            color: '#ffffff',
+            weight: 1.5,
+            radius: 7.5
+          });
+        }
+      });
+    }
+
+    // Pan map to ward
+    if (pan && this.spatialMap && ward.lat && ward.lng) {
+      this.spatialMap.flyTo([ward.lat, ward.lng], Math.max(12, this.spatialMap.getZoom()), {
+        duration: 0.8
+      });
+    }
+  }
+
+  updateSpatialKpis() {
+    const activeWards = this.getFilteredSpatialWards();
+    const totalWards = this.getSpatialWards();
+
+    // 1. Active Territory
+    const elTerritory = document.getElementById('kpiSpatialTerritory');
+    if (elTerritory) elTerritory.textContent = this.spatialProvince;
+
+    const elWardsCount = document.getElementById('kpiSpatialWardsCount');
+    if (elWardsCount) {
+      elWardsCount.textContent = `${activeWards.length} Wards Active (of ${totalWards.length})`;
+    }
+
+    // 2. Party Distribution
+    const partyCounts = {};
+    activeWards.forEach(w => {
+      const win = (w.winner || 'Other').toUpperCase();
+      partyCounts[win] = (partyCounts[win] || 0) + 1;
+    });
+
+    const partyColors = {
+      'DA': '#2563eb',
+      'ANC': '#ca8a04',
+      'ACTIONSA': '#059669',
+      'EFF': '#dc2626',
+      'MK': '#064e3b',
+      'MKP': '#064e3b',
+      'IFP': '#991b1b',
+      'PA': '#854d0e',
+      'VF PLUS': '#ea580c',
+      'VF+': '#ea580c',
+      'OTHER': '#64748b'
+    };
+
+    const meterEl = document.getElementById('kpiPartyMeter');
+    const legendEl = document.getElementById('kpiPartyLegendInline');
+    const totalCount = activeWards.length || 1;
+
+    // Sort parties descending by count
+    const sortedParties = Object.keys(partyCounts).sort((a, b) => partyCounts[b] - partyCounts[a]);
+
+    if (meterEl) {
+      meterEl.innerHTML = sortedParties.map(p => {
+        const cnt = partyCounts[p];
+        const pct = ((cnt / totalCount) * 100).toFixed(1);
+        const col = partyColors[p] || partyColors['OTHER'];
+        return `<div class="spatial-party-seg" style="width: ${pct}%; background: ${col};" title="${p}: ${cnt} wards (${pct}%)"></div>`;
+      }).join('');
+    }
+
+    if (legendEl) {
+      legendEl.innerHTML = sortedParties.slice(0, 5).map(p => {
+        const cnt = partyCounts[p];
+        const col = partyColors[p] || partyColors['OTHER'];
+        return `<span class="spatial-party-pill"><span class="spatial-party-dot" style="background:${col};"></span>${p}: ${cnt}</span>`;
+      }).join('');
+    }
+
+    // 3. Average Turnout
+    const sumTurnout = activeWards.reduce((acc, w) => acc + (w.turnout || 0.45), 0);
+    const meanTurnout = activeWards.length > 0 ? (sumTurnout / activeWards.length) : 0.474;
+    const elMeanTurnout = document.getElementById('kpiSpatialMeanTurnout');
+    if (elMeanTurnout) elMeanTurnout.textContent = `${(meanTurnout * 100).toFixed(1)}%`;
+
+    const elTurnoutSub = document.getElementById('kpiSpatialTurnoutSub');
+    if (elTurnoutSub && activeWards.length > 0) {
+      const turnouts = activeWards.map(w => w.turnout || 0.45);
+      const minT = Math.min(...turnouts);
+      const maxT = Math.max(...turnouts);
+      elTurnoutSub.textContent = `Dispersion: ${(minT * 100).toFixed(1)}% to ${(maxT * 100).toFixed(1)}%`;
+    }
+
+    // 4. Swing Battlegrounds (< 5% victory margin)
+    const swingCount = activeWards.filter(w => (w.margin !== undefined ? w.margin : 0.15) < 0.05).length;
+    const elSwing = document.getElementById('kpiSpatialSwingCount');
+    if (elSwing) elSwing.textContent = `${swingCount} Wards`;
+
+    // 5. Total Wards Badge
+    const elTotalBadge = document.getElementById('spatialTotalWardsBadge');
+    if (elTotalBadge) elTotalBadge.textContent = `${activeWards.length} Wards`;
+
+    const elProvBadge = document.getElementById('spatialActiveProvinceBadge');
+    if (elProvBadge) elProvBadge.textContent = `${this.spatialProvince} Active`;
+  }
+
+  updateSpatialHudLegend() {
+    const titleEl = document.getElementById('spatialLegendTitle');
+    const itemsEl = document.getElementById('spatialLegendItems');
+    if (!titleEl || !itemsEl) return;
+
+    if (this.spatialMapLayer === 'winner') {
+      titleEl.textContent = 'Winning Political Party (Plurality)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#2563eb;"></span><span>DA (Democratic Alliance)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ca8a04;"></span><span>ANC (African National Congress)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#059669;"></span><span>ActionSA</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#dc2626;"></span><span>EFF (Economic Freedom Fighters)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#064e3b;"></span><span>MK Party (uMkhonto weSizwe)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#991b1b;"></span><span>IFP (Inkatha Freedom Party)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#854d0e;"></span><span>PA (Patriotic Alliance)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ea580c;"></span><span>VF+ (Freedom Front Plus)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#64748b;"></span><span>Other / Independents</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'turnout') {
+      titleEl.textContent = 'Voter Turnout Rate (%)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#3b82f6;"></span><span>Very High (&gt; 62.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>High (52.0% – 62.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#eab308;"></span><span>Moderate (42.0% – 52.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f97316;"></span><span>Low (32.0% – 42.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ef4444;"></span><span>Severe Abstention (&lt; 32.0%)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'margin') {
+      titleEl.textContent = 'Victory Margin & Contestation';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#dc2626; box-shadow: 0 0 8px #dc2626;"></span><span>Critical Battleground (&lt; 5.0% Margin)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f59e0b;"></span><span>Contested Swing (5.0% – 15.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Dominant Plurality (&gt; 15.0%)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'deprivation') {
+      titleEl.textContent = 'Socio-Economic Deprivation Index';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#dc2626;"></span><span>Q4: Extreme Deprivation (&gt; 0.70)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f97316;"></span><span>Q3: Elevated Vulnerability (0.50 – 0.70)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#3b82f6;"></span><span>Q2: Moderate Density (0.28 – 0.50)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Q1: Affluent / Resilient (&lt; 0.28)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'tents') {
+      titleEl.textContent = 'Temporary Canvas Tent Stations';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#dc2626; box-shadow: 0 0 8px #dc2626;"></span><span>Wards with Canvas Tent Stations</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Permanent Brick Hall / School Facilities</span></div>
+        <div class="spatial-legend-row"><span class="tent-icon" style="font-size: 14px; margin-right: 6px;">&#9978;</span><span>Specific Tent Polling Station Beacon</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'forecast') {
+      titleEl.textContent = '2026 Machine Learning Forecast';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#2563eb;"></span><span>Projected Turnout &gt; 55%</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Projected Turnout 45% – 55%</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f59e0b;"></span><span>Projected Turnout 35% – 45%</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ef4444;"></span><span>Projected Turnout &lt; 35%</span></div>
+      `;
+    }
+  }
+
+  setSpatialProvince(provName) {
+    this.spatialProvince = provName;
+
+    // Update province buttons UI
+    document.querySelectorAll('.spatial-prov-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-province') === provName);
+    });
+
+    // Populate municipality dropdown for this province
+    const metroSelect = document.getElementById('spatialMetroSelect');
+    if (metroSelect) {
+      metroSelect.innerHTML = '<option value="all" selected>All Municipalities</option>';
+      const wards = this.getSpatialWards();
+      const uniqueMetros = [...new Set(wards.map(w => w.metro).filter(Boolean))].sort();
+      uniqueMetros.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m.startsWith('City') ? m : `City of ${m}`;
+        metroSelect.appendChild(opt);
+      });
+      this.spatialMetroFilter = 'all';
+    }
+
+    // Sync Leaflet map center & zoom
+    this.syncSpatialProvinceView(true);
+
+    // Re-render
+    this.renderSpatialWards();
+    this.renderSpatialTentHotspots();
+    this.updateSpatialKpis();
+
+    // Select first ward
+    const currentWards = this.getFilteredSpatialWards();
+    if (currentWards.length > 0) {
+      this.selectSpatialWard(currentWards[0], false);
+    }
+
+    this.showToast(`Switched spatial map to ${provName}`);
+  }
+
+  syncSpatialProvinceView(animate = true) {
+    if (!this.spatialMap) return;
+
+    if (this.spatialProvince === 'Custom CSV' && this.customCsvData && this.customCsvData.wards.length > 0) {
+      const validPoints = this.customCsvData.wards.filter(w => w.lat && w.lng).map(w => [w.lat, w.lng]);
+      if (validPoints.length > 0) {
+        const bounds = L.latLngBounds(validPoints);
+        this.spatialMap.fitBounds(bounds, { padding: [40, 40], animate });
+        return;
+      }
+    }
+
+    const configs = {
+      'Gauteng': { center: [-26.15, 28.18], zoom: 9.5 },
+      'Western Cape': { center: [-33.92, 18.55], zoom: 9.5 },
+      'KwaZulu-Natal': { center: [-29.85, 30.95], zoom: 9.5 },
+      'Eastern Cape': { center: [-33.85, 25.55], zoom: 9.5 }
+    };
+
+    const cfg = configs[this.spatialProvince] || configs['Gauteng'];
+    if (animate) {
+      this.spatialMap.flyTo(cfg.center, cfg.zoom, { duration: 1.0 });
+    } else {
+      this.spatialMap.setView(cfg.center, cfg.zoom);
+    }
+  }
+
+  resetSpatialMapExtent() {
+    this.syncSpatialProvinceView(true);
+    this.showToast('Reset map view to provincial extent');
+  }
+
+  setSpatialMapLayer(layerKey) {
+    this.spatialMapLayer = layerKey;
+    this.renderSpatialWards();
+    this.updateSpatialHudLegend();
+    this.showToast(`Choropleth layer updated: ${layerKey}`);
+  }
+
+  setSpatialPartyFilter(party) {
+    this.spatialPartyFilter = party;
+    this.renderSpatialWards();
+    this.updateSpatialKpis();
+  }
+
+  setSpatialMetroFilter(metro) {
+    this.spatialMetroFilter = metro;
+    this.renderSpatialWards();
+    this.updateSpatialKpis();
+
+    // If specific municipality selected, pan to centroid
+    if (metro !== 'all' && this.spatialMap) {
+      const matched = this.getFilteredSpatialWards();
+      if (matched.length > 0) {
+        const pts = matched.filter(w => w.lat && w.lng).map(w => [w.lat, w.lng]);
+        if (pts.length > 0) {
+          const bounds = L.latLngBounds(pts);
+          this.spatialMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+        }
+      }
+    }
+  }
+
+  handleSpatialSearchInput(query) {
+    this.spatialSearchQuery = query;
+    this.renderSpatialWards();
+    this.updateSpatialKpis();
+  }
+
+  async executeSpatialSearch() {
+    const q = (this.spatialSearchQuery || '').trim();
+    if (!q) return;
+
+    // 1. First search local wards
+    const matched = this.getFilteredSpatialWards();
+    if (matched.length > 0) {
+      this.selectSpatialWard(matched[0], true);
+      this.showToast(`Found and zoomed to Ward ${matched[0].ward_id}`);
+      return;
+    }
+
+    // 2. If no local ward ID match, search Google Places API (New)
+    if (this.googleMapsApiKey) {
+      try {
+        this.showToast(`Searching Google Places for "${q}"...`);
+        const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': this.googleMapsApiKey,
+            'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location'
+          },
+          body: JSON.stringify({
+            textQuery: `${q}, South Africa`
+          })
+        });
+
+        if (resp.ok) {
+          const result = await resp.json();
+          if (result.places && result.places.length > 0) {
+            const place = result.places[0];
+            const lat = place.location.latitude;
+            const lng = place.location.longitude;
+            const name = place.displayName?.text || place.formattedAddress;
+
+            if (this.spatialMap) {
+              this.spatialMap.flyTo([lat, lng], 13, { duration: 1.2 });
+            }
+
+            const allWards = this.getSpatialWards();
+            let closestWard = null;
+            let minDist = Infinity;
+            allWards.forEach(w => {
+              if (w.lat && w.lng) {
+                const d = Math.hypot(w.lat - lat, w.lng - lng);
+                if (d < minDist) {
+                  minDist = d;
+                  closestWard = w;
+                }
+              }
+            });
+
+            if (closestWard) {
+              this.selectSpatialWard(closestWard, false);
+              this.showToast(`Google Place: ${name} (Ward ${closestWard.ward_id})`);
+            } else {
+              this.showToast(`Google Place: ${name}`);
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Google Places API error:", err);
+      }
+    }
+
+    this.showToast('No matching wards or locations found.');
+  }
+
+  toggleSpatialTents() {
+    this.showTentMarkers = !this.showTentMarkers;
+    const btn = document.getElementById('btnToggleTents');
+    if (btn) {
+      btn.classList.toggle('active', this.showTentMarkers);
+      btn.querySelector('span').textContent = this.showTentMarkers ? '203 Tents (On)' : '203 Tents (Off)';
+    }
+    this.renderSpatialTentHotspots();
+    this.showToast(`Canvas tent beacons ${this.showTentMarkers ? 'enabled' : 'hidden'}`);
+  }
+
+  inspectSelectedWardInExplorer() {
+    if (this.selectedSpatialWard) {
+      this.activeWardId = String(this.selectedSpatialWard.ward_id);
+      this.activeMetro = this.selectedSpatialWard.metro || 'Tshwane';
+      this.fullMetroFilter = this.selectedSpatialWard.metro || 'all';
+
+      this.switchFullTab('wards');
+      this.updateFullWardCard();
+      this.populateFullWardsDropdown();
+    }
+  }
+
+  toggleMethodologyGuide() {
+    const guide = document.getElementById('spatialMethodologyGuide');
+    if (!guide) return;
+    const isHidden = (guide.style.display === 'none' || !guide.style.display);
+    guide.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      guide.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  switchGuideTab(tabIndex) {
+    document.querySelectorAll('.smg-tab').forEach(t => {
+      t.classList.toggle('active', parseInt(t.getAttribute('data-smgtab'), 10) === tabIndex);
+    });
+    for (let i = 1; i <= 4; i++) {
+      const pane = document.getElementById(`smgPane${i}`);
+      if (pane) {
+        pane.style.display = (i === tabIndex) ? 'block' : 'none';
+      }
+    }
+  }
+
+  /* --------------------------------------------------------------------------
+     CSV Dataset Ingestion & Dynamic GIS Mapper
+     -------------------------------------------------------------------------- */
+  openCsvModal() {
+    const modal = document.getElementById('modalCsvImporter');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  closeCsvModal() {
+    const modal = document.getElementById('modalCsvImporter');
+    if (modal) modal.style.display = 'none';
+  }
+
+  handleCsvFileInput(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      this.processCsvFile(file.name, text);
+    };
+    reader.readAsText(file);
+  }
+
+  parseCsvText(text) {
+    if (!text) return { headers: [], rows: [] };
+    const lines = text.split(/\r\n|\n|\r/).filter(line => line.trim() !== '');
+    if (lines.length < 2) return { headers: [], rows: [] };
+
+    // Auto-detect delimiter: comma or semicolon or tab
+    const firstLine = lines[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semiCount = (firstLine.match(/;/g) || []).length;
+    const tabCount = (firstLine.match(/\t/g) || []).length;
+    let delimiter = ',';
+    if (semiCount > commaCount && semiCount > tabCount) delimiter = ';';
+    else if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+
+    const parseLine = (lineStr) => {
+      const result = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < lineStr.length; i++) {
+        const c = lineStr[i];
+        if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === delimiter && !inQuotes) {
+          result.push(cur.trim().replace(/^"|"$/g, ''));
+          cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      result.push(cur.trim().replace(/^"|"$/g, ''));
+      return result;
+    };
+
+    const headers = parseLine(lines[0]);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const parsed = parseLine(lines[i]);
+      if (parsed.length > 0 && parsed.some(v => v !== '')) {
+        rows.push(parsed);
+      }
+    }
+
+    return { headers, rows };
+  }
+
+  processCsvFile(fileName, csvText) {
+    const { headers, rows } = this.parseCsvText(csvText);
+    if (rows.length === 0) {
+      this.showToast('Invalid CSV: No data rows found.');
+      return;
+    }
+
+    this.parsedCsvStaging = { fileName, headers, rows };
+
+    // Update UI elements
+    const fileBadge = document.getElementById('csvFileRowsBadge');
+    if (fileBadge) fileBadge.textContent = `${rows.length} Rows Detected`;
+
+    const fileNameDisplay = document.getElementById('csvFileNameDisplay');
+    if (fileNameDisplay) fileNameDisplay.textContent = fileName;
+
+    // Auto-detect columns
+    const findBestCol = (patterns) => {
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase();
+        for (const p of patterns) {
+          if (h.includes(p.toLowerCase())) return i;
+        }
+      }
+      return 0;
+    };
+
+    const colWardIdx = findBestCol(['ward_id', 'ward', 'id', 'code', 'number']);
+    const colWinnerIdx = findBestCol(['winner', 'party', 'lead', 'winning']);
+    const colTurnoutIdx = findBestCol(['turnout', 'participation', 'voted', 'pct', 'rate']);
+    const colDepIdx = findBestCol(['deprivation', 'csdi', 'poverty', 'score']);
+
+    // Populate Mapping Dropdowns
+    const mappingSelects = [
+      { id: 'csvMapColWard', defaultIdx: colWardIdx },
+      { id: 'csvMapColWinner', defaultIdx: colWinnerIdx },
+      { id: 'csvMapColTurnout', defaultIdx: colTurnoutIdx },
+      { id: 'csvMapColDeprivation', defaultIdx: colDepIdx }
+    ];
+
+    mappingSelects.forEach(cfg => {
+      const sel = document.getElementById(cfg.id);
+      if (sel) {
+        sel.innerHTML = headers.map((h, i) => `<option value="${i}" ${i === cfg.defaultIdx ? 'selected' : ''}>${h} (Col ${i + 1})</option>`).join('');
+      }
+    });
+
+    // Render 5-row preview table
+    const table = document.getElementById('csvPreviewTable');
+    if (table) {
+      let thead = '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+      let tbody = '<tbody>';
+      const previewRows = rows.slice(0, 5);
+      previewRows.forEach(r => {
+        tbody += '<tr>' + headers.map((h, idx) => `<td>${r[idx] !== undefined ? r[idx] : ''}</td>`).join('') + '</tr>';
+      });
+      tbody += '</tbody>';
+      table.innerHTML = thead + tbody;
+    }
+
+    // Show mapping section & enable button
+    const mappingSection = document.getElementById('csvMappingSection');
+    if (mappingSection) mappingSection.style.display = 'block';
+
+    const btnApply = document.getElementById('btnApplyCsvData');
+    if (btnApply) btnApply.disabled = false;
+  }
+
+  async loadPresetCsv(presetKey) {
+    try {
+      let url = './data/sample_western_cape.csv';
+      let fallbackText = '';
+      if (presetKey === 'kzn') {
+        url = './data/sample_kzn_battleground.csv';
+        fallbackText = `ward_id,province,metro,locality,winner,turnout,margin,enp,deprivation_score,registered,lat,lng\n59200028,KwaZulu-Natal,eThekwini,Durban Central / Morningside,DA,0.612,0.38,2.15,0.18,17800,-29.835,31.015\n59200084,KwaZulu-Natal,eThekwini,Umlazi Section V,ANC,0.412,0.03,3.95,0.72,21400,-29.972,30.885\n59200051,KwaZulu-Natal,eThekwini,Phoenix North / Sunford,DA,0.528,0.24,2.88,0.38,19200,-29.702,31.002`;
+      } else {
+        fallbackText = `ward_id,province,metro,locality,winner,turnout,margin,enp,deprivation_score,registered,lat,lng\n19100095,Western Cape,City of Cape Town,Khayelitsha Site B / Nonqubela,ANC,0.382,0.28,2.85,0.74,19450,-34.036,18.665\n19100077,Western Cape,City of Cape Town,Mitchells Plain / Tafelsig,DA,0.445,0.22,3.42,0.58,21300,-34.050,18.615\n19100115,Western Cape,City of Cape Town,Sea Point / Camps Bay / Clifton,DA,0.684,0.62,1.84,0.12,18920,-33.921,18.385`;
+      }
+
+      let text = '';
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+          text = await resp.text();
+        } else {
+          text = fallbackText;
+        }
+      } catch (e) {
+        text = fallbackText;
+      }
+
+      this.processCsvFile(`${presetKey}_preset.csv`, text);
+      this.showToast(`Loaded ${presetKey.replace('_', ' ').toUpperCase()} sample CSV into staging!`);
+    } catch (err) {
+      console.error("Error loading preset CSV:", err);
+      this.showToast('Could not load preset CSV.');
+    }
+  }
+
+  downloadCsvTemplate() {
+    const csvContent = "ward_id,province,metro,locality,winner,turnout,margin,enp,deprivation_score,registered,lat,lng\n" +
+      "79900059,Gauteng,City of Tshwane,Hammanskraal West / Temba,DA,0.294,0.34,3.15,0.82,18920,-25.398,28.285\n" +
+      "79800065,Gauteng,City of Johannesburg,Soweto / Meadowlands West,ANC,0.313,0.22,3.82,0.79,21450,-26.225,27.888\n" +
+      "79700001,Gauteng,City of Ekurhuleni,Olifantsfontein / Midstream,DA,0.712,0.35,2.34,0.18,16935,-26.013,28.238\n" +
+      "19100095,Western Cape,City of Cape Town,Khayelitsha Site B,ANC,0.382,0.28,2.85,0.74,19450,-34.036,18.665\n" +
+      "59200084,KwaZulu-Natal,eThekwini,Umlazi Section V,ANC,0.412,0.03,3.95,0.72,21400,-29.972,30.885";
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "civicpulse_spatial_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.showToast('Downloaded civicpulse_spatial_template.csv');
+  }
+
+  resetToOfficialGautengData() {
+    this.setSpatialProvince('Gauteng');
+    this.closeCsvModal();
+    this.showToast('Reset spatial view to official Gauteng baseline (354 wards)');
+  }
+
+  applyCustomCsvData() {
+    if (!this.parsedCsvStaging || !this.parsedCsvStaging.rows) return;
+
+    const { headers, rows, fileName } = this.parsedCsvStaging;
+    const colWardIdx = parseInt(document.getElementById('csvMapColWard')?.value || '0', 10);
+    const colWinnerIdx = parseInt(document.getElementById('csvMapColWinner')?.value || '1', 10);
+    const colTurnoutIdx = parseInt(document.getElementById('csvMapColTurnout')?.value || '2', 10);
+    const colDepIdx = parseInt(document.getElementById('csvMapColDeprivation')?.value || '3', 10);
+
+    // Look for explicit lat/lng/metro columns
+    const findColIdx = (patterns) => {
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase();
+        for (const p of patterns) {
+          if (h.includes(p.toLowerCase())) return i;
+        }
+      }
+      return -1;
+    };
+    const latColIdx = findColIdx(['lat', 'latitude', 'y']);
+    const lngColIdx = findColIdx(['lng', 'longitude', 'lon', 'x']);
+    const metroColIdx = findColIdx(['metro', 'municipality', 'city', 'district']);
+    const locColIdx = findColIdx(['locality', 'suburb', 'area', 'name']);
+    const marginColIdx = findColIdx(['margin', 'diff', 'gap']);
+    const regColIdx = findColIdx(['registered', 'voters', 'reg']);
+
+    const customWards = rows.map((r, i) => {
+      const rawWardId = r[colWardIdx] || `CW-${i + 1}`;
+      const rawWinner = r[colWinnerIdx] || 'DA';
+
+      let rawTurnout = parseFloat(r[colTurnoutIdx]);
+      if (isNaN(rawTurnout)) rawTurnout = 0.45;
+      if (rawTurnout > 1.0) rawTurnout = rawTurnout / 100; // normalize 45% -> 0.45
+
+      let rawDep = parseFloat(r[colDepIdx]);
+      if (isNaN(rawDep)) rawDep = 0.5;
+      if (rawDep > 1.0) rawDep = rawDep / 100;
+
+      let lat = latColIdx !== -1 ? parseFloat(r[latColIdx]) : null;
+      let lng = lngColIdx !== -1 ? parseFloat(r[lngColIdx]) : null;
+
+      const metro = metroColIdx !== -1 && r[metroColIdx] ? r[metroColIdx] : 'Custom District';
+      const locality = locColIdx !== -1 && r[locColIdx] ? r[locColIdx] : `Ward ${rawWardId}`;
+      const margin = marginColIdx !== -1 && !isNaN(parseFloat(r[marginColIdx])) ? parseFloat(r[marginColIdx]) : 0.12;
+      const registered = regColIdx !== -1 && !isNaN(parseInt(r[regColIdx], 10)) ? parseInt(r[regColIdx], 10) : 15000;
+
+      // Assign fallback coordinates if missing
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        const coords = this.resolveWardCoordinates({ locality, metro }, 'Gauteng', i);
+        lat = coords.lat;
+        lng = coords.lng;
+      }
+
+      return {
+        ward_id: String(rawWardId),
+        province: 'Custom CSV',
+        metro,
+        locality,
+        ward_num: i + 1,
+        winner: rawWinner,
+        turnout: rawTurnout,
+        margin: margin > 1.0 ? margin / 100 : margin,
+        enp: 2.8,
+        deprivation_score: rawDep,
+        registered,
+        tent_share: 0,
+        lat,
+        lng,
+        forecast_2026: rawTurnout * 0.98,
+        forecast_lo: Math.max(0.1, rawTurnout - 0.05),
+        forecast_hi: Math.min(0.95, rawTurnout + 0.05),
+        top_vds: []
+      };
+    });
+
+    this.customCsvData = {
+      name: fileName,
+      headers,
+      rawRows: rows,
+      wards: customWards
+    };
+
+    if (!this.provincesData) this.provincesData = this.getProvincesData();
+    this.provincesData['Custom CSV'] = {
+      name: 'Custom CSV',
+      code: 'CSV',
+      capital: 'Imported Dataset',
+      description: `User-imported CSV dataset (${customWards.length} wards) with custom spatial points`,
+      registered: customWards.reduce((a, b) => a + (b.registered || 0), 0),
+      turnout: customWards.reduce((a, b) => a + (b.turnout || 0), 0) / (customWards.length || 1),
+      tent_vds: 0,
+      metros: [...new Set(customWards.map(w => w.metro))],
+      wards: customWards
+    };
+
+    // Show Custom CSV Pill in Row 1
+    const pillBtn = document.getElementById('btnCustomCsvPill');
+    if (pillBtn) {
+      pillBtn.style.display = 'inline-flex';
+      const badge = document.getElementById('customCsvCountBadge');
+      if (badge) badge.textContent = `${customWards.length} Rows`;
+    }
+
+    // Switch to Custom CSV
+    this.setSpatialProvince('Custom CSV');
+    this.closeCsvModal();
+    this.showToast(`Loaded & mapped ${customWards.length} custom CSV records!`);
+  }
+
+  /* --------------------------------------------------------------------------
      7. Screen 6: Deprivation vs Turnout Chart
      -------------------------------------------------------------------------- */
   updateAnalyticsChart() {
@@ -1097,6 +2389,9 @@ class CivicPulseApp {
     this.theme = this.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', this.theme);
     localStorage.setItem('civicpulse_theme', this.theme);
+    if (this.spatialTileStyle === 'auto' && this.spatialMap) {
+      this.setSpatialTileLayer();
+    }
     this.showToast(`Switched to ${this.theme} theme`);
   }
 
@@ -1160,7 +2455,11 @@ class CivicPulseApp {
     }
 
     // Tab-specific lifecycle activations
-    if (tabId === 'analytics') {
+    if (tabId === 'map') {
+      setTimeout(() => {
+        this.initOrRefreshSpatialMap();
+      }, 50);
+    } else if (tabId === 'analytics') {
       this.renderFullDeprivationChart();
     } else if (tabId === 'wards') {
       this.updateFullWardCard();

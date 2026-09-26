@@ -1,0 +1,11 @@
+ward_id,ward_num,metro,province,locality,winner,turnout,margin,enp,deprivation_score,registered,valid,share_ANC,share_DA,share_EFF,share_ActionSA,share_MK,tent_count,lat,lng
+59200032,32,eThekwini,KwaZulu-Natal,Durban Central / South Beach,ANC,0.425,0.080,3.45,0.42,18500,7860,0.385,0.305,0.165,0.045,0.065,0,-29.858,31.025
+59200085,85,eThekwini,KwaZulu-Natal,Umlazi Section D / V,MK,0.521,0.180,3.12,0.72,22100,11510,0.265,0.042,0.115,0.018,0.521,1,-29.965,30.885
+59200045,45,eThekwini,KwaZulu-Natal,KwaMashu Central / L,MK,0.495,0.140,3.28,0.75,20400,10100,0.285,0.035,0.145,0.015,0.495,1,-29.745,30.985
+59200035,35,eThekwini,KwaZulu-Natal,Durban North / Umhlanga,DA,0.685,0.610,1.92,0.14,19800,13560,0.052,0.785,0.042,0.065,0.025,0,-29.735,31.085
+59200068,68,eThekwini,KwaZulu-Natal,Chatsworth / Silverglen,DA,0.542,0.260,2.85,0.38,17900,9700,0.125,0.542,0.075,0.085,0.045,0,-29.905,30.885
+59200072,72,eThekwini,KwaZulu-Natal,Phoenix Unit 4 / Stonebridge,DA,0.565,0.310,2.75,0.41,18400,10390,0.095,0.565,0.085,0.075,0.035,0,-29.705,31.015
+52205021,21,Msunduzi,KwaZulu-Natal,Pietermaritzburg Central,ANC,0.445,0.065,3.62,0.48,16500,7340,0.365,0.300,0.145,0.035,0.115,0,-29.605,30.382
+52205014,14,Msunduzi,KwaZulu-Natal,Edendale / Plessislaer,MK,0.482,0.110,3.35,0.74,18100,8720,0.315,0.035,0.115,0.015,0.482,1,-29.645,30.315
+52802005,5,uMhlathuze,KwaZulu-Natal,Richards Bay / Meerensee,DA,0.612,0.380,2.45,0.22,17200,10520,0.145,0.612,0.085,0.025,0.085,0,-28.785,32.085
+52802012,12,uMhlathuze,KwaZulu-Natal,Esikhawini Township,IFP,0.455,0.085,3.48,0.69,16800,7640,0.325,0.045,0.115,0.015,0.125,1,-28.875,31.915

@@ -1,0 +1,6 @@
+ward_id,ward_num,metro,province,locality,winner,turnout,margin,enp,deprivation_score,registered,valid,share_ANC,share_DA,share_EFF,share_ActionSA,share_MK,tent_count,lat,lng
+79700001,1,City of Ekurhuleni,Gauteng,Olifantsfontein / Midstream,DA,0.713,0.351,2.34,0.18,16935,11911,0.241,0.592,0.135,0.000,0.000,0,-26.013,28.238
+79700002,2,City of Ekurhuleni,Gauteng,Winnie Mandela / Tembisa North,ANC,0.460,0.211,2.41,0.66,14109,6348,0.544,0.070,0.333,0.000,0.000,0,-26.026,28.254
+79800065,65,City of Johannesburg,Gauteng,Soweto / Meadowlands West,ANC,0.313,0.220,3.82,0.79,21450,6580,0.485,0.052,0.265,0.142,0.000,1,-26.230,27.890
+79800102,102,City of Johannesburg,Gauteng,Bryanston West / River Club,ActionSA,0.648,0.039,2.72,0.14,18200,11650,0.138,0.382,0.059,0.421,0.000,0,-26.100,28.060
+79900059,59,City of Tshwane,Gauteng,Hammanskraal West / Temba,DA,0.294,0.340,3.15,0.82,18920,5480,0.285,0.425,0.210,0.050,0.000,1,-25.410,28.270
