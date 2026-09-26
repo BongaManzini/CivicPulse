@@ -335,11 +335,19 @@ class CivicPulseApp {
       }
     });
 
-    // SVG Map Hover & Click (both mobile and full app maps)
+    // SVG Map Hover, Focus, Click & Keyboard Activation (both mobile and full app maps)
     const paths = document.querySelectorAll('.map-region-path');
     paths.forEach(p => {
       p.addEventListener('mouseenter', (e) => this.handleMapHover(e));
       p.addEventListener('mouseleave', () => this.handleMapLeave());
+      p.addEventListener('focus', (e) => this.handleMapHover(e));
+      p.addEventListener('blur', () => this.handleMapLeave());
+      p.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          p.click();
+        }
+      });
       p.addEventListener('click', (e) => {
         const m = e.currentTarget.getAttribute('data-metro');
         if (m) {

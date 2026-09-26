@@ -140,7 +140,59 @@ input,
 select {
   font-family: inherit;
   color: inherit;
-  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   2.1 Accessibility Focus System & Screen Reader Utilities
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--primary-accent) !important;
+  outline-offset: 2px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--primary-accent) !important;
+  outline-offset: 2px !important;
+}
+
+.feature-slider:focus-visible,
+.full-feature-slider:focus-visible,
+.sim-range-input:focus-visible {
+  outline: 2px solid var(--primary-accent) !important;
+  outline-offset: 4px !important;
+}
+
+.hub-card:focus-visible,
+.header-notification-bell:focus-visible {
+  outline: 2px solid var(--primary-accent) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px var(--primary-glow) !important;
+}
+
+.map-region-path:focus-visible {
+  outline: 2px solid var(--primary-accent) !important;
+  outline-offset: 2px !important;
+  stroke: var(--primary-accent) !important;
+  stroke-width: 2.5px !important;
+}
+
+/* Screen Reader Only Utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 .text-accent {

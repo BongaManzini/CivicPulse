@@ -197,7 +197,7 @@
         <div class="full-top-toolbar">
           <div class="search-omni-box">
             <svg class="search-lens" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="fullSearchWards" class="omni-input" placeholder="Search 354 wards (e.g. 79900059, Tshwane, DA, Soweto, Mamelodi)..." oninput="window.CivicApp.handleOmniSearch(this.value);" autocomplete="off">
+            <input type="text" id="fullSearchWards" class="omni-input" placeholder="Search 354 wards (e.g. 79900059, Tshwane, DA, Soweto, Mamelodi)..." aria-label="Search 354 wards (e.g. 79900059, Tshwane, DA, Soweto, Mamelodi)" oninput="window.CivicApp.handleOmniSearch(this.value);" autocomplete="off">
             <div class="omni-dropdown" id="omniDropdown"></div>
           </div>
 
@@ -247,7 +247,7 @@
             <div class="dwh-actions-col">
               <button type="button" class="dwh-btn-ghost" onclick="window.CivicApp.demoPrevStep();" id="btnDemoPrev" disabled>&larr; Prev</button>
               <button type="button" class="dwh-btn-primary" onclick="window.CivicApp.demoNextStep();" id="btnDemoNext">Next Step &rarr;</button>
-              <button type="button" class="dwh-btn-close" onclick="window.CivicApp.toggleDemoMode(false);" title="Close Demo">&times;</button>
+              <button type="button" class="dwh-btn-close" onclick="window.CivicApp.toggleDemoMode(false);" title="Close Demo" aria-label="Close Demo">&times;</button>
             </div>
           </div>
         </div>
@@ -490,6 +490,7 @@
 
           <!-- ================= TAB 2: SPATIAL MAP & GIS HOTSPOTS ================= -->
           <section class="full-tab-pane" id="paneMap">
+            <h1 class="sr-only">Gauteng Spatial Deprivation &amp; Turnout Map</h1>
             <div class="map-layout-grid">
               <div class="map-main-column">
                 <div class="full-card">
@@ -517,7 +518,7 @@
                       <span class="legend-dot high-risk"></span><span>High Deprivation & Tents</span>
                     </div>
 
-                    <svg viewBox="0 0 340 280" class="gauteng-map-svg full-map-scale" id="fullGautengMapSvg">
+                    <svg viewBox="0 0 340 280" class="gauteng-map-svg full-map-scale" id="fullGautengMapSvg" role="region" aria-label="Interactive map of Gauteng metropolitan municipalities and tent stations">
                       <!-- Background Outline of South Africa (subtle) -->
                       <path d="M 30,190 C 20,130 50,70 120,40 C 180,20 270,30 310,90 C 330,130 320,200 280,240 C 220,280 90,260 30,190 Z" 
                             fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="3,3"/>
@@ -525,19 +526,19 @@
                       <!-- Gauteng Province Focus Polygon -->
                       <g class="metro-clusters">
                         <!-- City of Tshwane (North cluster) -->
-                        <path id="fullPathTshwane" class="map-region-path" data-metro="Tshwane"
+                        <path id="fullPathTshwane" class="map-region-path" data-metro="Tshwane" tabindex="0" role="button" aria-label="City of Tshwane (click or press Enter to filter)"
                               d="M 110,60 L 170,45 L 230,55 L 245,95 L 205,120 L 145,115 L 105,95 Z"
                               fill="rgba(255, 255, 255, 0.2)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
                         <text x="170" y="85" class="map-label" text-anchor="middle">TSHWANE</text>
 
                         <!-- City of Johannesburg (South-West cluster) -->
-                        <path id="fullPathJhb" class="map-region-path" data-metro="Johannesburg"
+                        <path id="fullPathJhb" class="map-region-path" data-metro="Johannesburg" tabindex="0" role="button" aria-label="City of Johannesburg (click or press Enter to filter)"
                               d="M 95,125 L 155,120 L 180,165 L 140,195 L 85,175 L 80,145 Z"
                               fill="rgba(255, 255, 255, 0.14)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
                         <text x="130" y="160" class="map-label" text-anchor="middle">JOHANNESBURG</text>
 
                         <!-- Ekurhuleni (East cluster) -->
-                        <path id="fullPathEku" class="map-region-path" data-metro="Ekurhuleni"
+                        <path id="fullPathEku" class="map-region-path" data-metro="Ekurhuleni" tabindex="0" role="button" aria-label="City of Ekurhuleni (click or press Enter to filter)"
                               d="M 185,125 L 235,110 L 265,150 L 230,185 L 175,170 Z"
                               fill="rgba(255, 255, 255, 0.08)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
                         <text x="220" y="150" class="map-label" text-anchor="middle">EKURHULENI</text>
@@ -602,6 +603,7 @@
 
           <!-- ================= TAB 3: WARD INTELLIGENCE & COMPARATOR ================= -->
           <section class="full-tab-pane" id="paneWards">
+            <h1 class="sr-only">National Ward Explorer &amp; Voting District Inspector</h1>
             <!-- Header Section -->
             <div class="ward-explorer-header">
               <div class="weh-titles">
@@ -772,7 +774,7 @@
                   <div class="wfc-input-wrapper">
                     <svg class="wfc-search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     <input type="text" id="wardFilterSearch" class="custom-input" placeholder="Type Ward ID, locality, station name..." oninput="window.CivicApp.onWardSearchInput(this.value);" />
-                    <button type="button" class="wfc-clear-btn" id="wfcClearSearch" onclick="window.CivicApp.clearWardSearch();" title="Clear search">&times;</button>
+                    <button type="button" class="wfc-clear-btn" id="wfcClearSearch" onclick="window.CivicApp.clearWardSearch();" title="Clear search" aria-label="Clear ward search">&times;</button>
                   </div>
                 </div>
 
@@ -1039,6 +1041,7 @@
 
           <!-- ================= TAB 4: EMPIRICAL FINDINGS & ECONOMETRICS ================= -->
           <section class="full-tab-pane" id="paneAnalytics">
+            <h1 class="sr-only">Empirical Hypotheses &amp; Statistical Auditing</h1>
             <div class="analytics-hero-banner">
               <h2>Empirical Hypotheses & Statistical Auditing</h2>
               <p>Scientific evidence addressing the DIRISA Datathon qualification challenge: proving the socio-economic and political drivers of voter disaffection.</p>
@@ -1106,28 +1109,28 @@
             <div class="stats-audit-grid">
               <div class="stat-audit-card">
                 <span class="audit-badge">Normality Test</span>
-                <h4>Shapiro–Wilk Test</h4>
+                <h3>Shapiro–Wilk Test</h3>
                 <div class="audit-math">W = 0.980 · p = 0.00155</div>
                 <p>Turnout departs from Gaussian normality; justifies non-parametric rank tests (Spearman, Mann-Whitney).</p>
               </div>
 
               <div class="stat-audit-card">
                 <span class="audit-badge">Metro Parity</span>
-                <h4>Mann–Whitney U Test</h4>
+                <h3>Mann–Whitney U Test</h3>
                 <div class="audit-math">Median JHB 42.1% vs TSH 41.1% · p = 0.225</div>
                 <p>No statistically significant inter-metro difference; variance is overwhelmingly intra-metro at the ward level.</p>
               </div>
 
               <div class="stat-audit-card">
                 <span class="audit-badge">Stronghold Divide</span>
-                <h4>Kruskal–Wallis Test</h4>
+                <h3>Kruskal–Wallis Test</h3>
                 <div class="audit-math">H = 107.5 · p = 4.61e-24</div>
                 <p>Massive turnout gap: ANC median 39.4% vs DA median 51.7%. Turnout is heavily stratified by socio-economic class.</p>
               </div>
 
               <div class="stat-audit-card">
                 <span class="audit-badge">Multicollinearity</span>
-                <h4>Variance Inflation Factor</h4>
+                <h3>Variance Inflation Factor</h3>
                 <div class="audit-math">Max VIF = 11.2 (ANC Share) · ENP = 5.3</div>
                 <p>Severe collinearity between party shares and margin excludes standard OLS; regularized Ridge is selected.</p>
               </div>
@@ -1193,6 +1196,7 @@
 
           <!-- ================= TAB 5: POLICY SIMULATOR STUDIO ================= -->
           <section class="full-tab-pane" id="paneSimulator">
+            <h1 class="sr-only">Policy &amp; Municipal Turnout Simulator</h1>
             <div class="sim-studio-layout">
               <!-- Left Control Sliders -->
               <div class="sim-left-panel">
@@ -1213,7 +1217,7 @@
                       </label>
                       <span class="slider-bubble" id="fullBubble1">+25%</span>
                     </div>
-                    <input type="range" id="fullSlider1" min="0" max="50" value="25" class="full-feature-slider" oninput="window.CivicApp.syncSlidersFromFull(1, this.value);">
+                    <input type="range" id="fullSlider1" min="0" max="50" value="25" class="full-feature-slider" aria-label="Service delivery (+Piped Water &amp; Sanitation) intervention intensity percentage" oninput="window.CivicApp.syncSlidersFromFull(1, this.value);">
                     <div class="ss-range-labels"><span>0%</span><span>Targeted in high-stress informal wards</span><span>+50%</span></div>
                   </div>
 
@@ -1227,7 +1231,7 @@
                       </label>
                       <span class="slider-bubble" id="fullBubble2">+30%</span>
                     </div>
-                    <input type="range" id="fullSlider2" min="0" max="50" value="30" class="full-feature-slider" oninput="window.CivicApp.syncSlidersFromFull(2, this.value);">
+                    <input type="range" id="fullSlider2" min="0" max="50" value="30" class="full-feature-slider" aria-label="Youth jobs &amp; free polling day transit intervention intensity percentage" oninput="window.CivicApp.syncSlidersFromFull(2, this.value);">
                     <div class="ss-range-labels"><span>0%</span><span>Transit subsidies & campus registration hubs</span><span>+50%</span></div>
                   </div>
 
@@ -1241,7 +1245,7 @@
                       </label>
                       <span class="slider-bubble" id="fullBubble3">+40%</span>
                     </div>
-                    <input type="range" id="fullSlider3" min="0" max="50" value="40" class="full-feature-slider" oninput="window.CivicApp.syncSlidersFromFull(3, this.value);">
+                    <input type="range" id="fullSlider3" min="0" max="50" value="40" class="full-feature-slider" aria-label="Replace 203 tent stations with permanent hubs intervention intensity percentage" oninput="window.CivicApp.syncSlidersFromFull(3, this.value);">
                     <div class="ss-range-labels"><span>0%</span><span>Replaces temporary canvas stations with civic halls</span><span>+50%</span></div>
                   </div>
 
@@ -1381,6 +1385,7 @@
 
           <!-- ================= TAB 6: YOUTH CIVIC HUB & QUIZ ================= -->
           <section class="full-tab-pane" id="paneQuiz">
+            <h1 class="sr-only">Youth Civic &amp; Mentorship Alignment Quiz</h1>
             <div class="quiz-hub-layout">
               <div class="quiz-interactive-card">
                 <div class="quiz-card-top">
@@ -1467,6 +1472,7 @@
 
           <!-- ================= TAB 7: STUDY PURPOSE & RESEARCH FRAMEWORK ================= -->
           <section class="full-tab-pane" id="panePurpose">
+            <h1 class="sr-only">Study Purpose &amp; Problem Statement</h1>
             <div class="full-card">
               <div class="card-header-flex">
                 <div>
@@ -1630,6 +1636,7 @@
 
           <!-- ================= TAB 9: ARCHITECTURE & DEPLOYMENT STRATEGY ================= -->
           <section class="full-tab-pane" id="paneDeployment">
+            <h1 class="sr-only">Model Deployment &amp; Systems Engineering</h1>
             <div class="full-card">
               <div class="card-header-flex">
                 <div>
@@ -1723,7 +1730,7 @@
                 <div class="pipe-step">
                   <div class="ps-num">1</div>
                   <div class="ps-body">
-                    <h4 class="ps-title">Raw Official Ingestion</h4>
+                    <h3 class="ps-title">Raw Official Ingestion</h3>
                     <p class="ps-text">IEC 2016/2021 election CSVs (45,086 rows) + Stats SA Census 2022 ward indicators + CSIR spatial shapefiles.</p>
                   </div>
                 </div>
@@ -1731,7 +1738,7 @@
                 <div class="pipe-step">
                   <div class="ps-num">2</div>
                   <div class="ps-body">
-                    <h4 class="ps-title">Harmonisation & Audit</h4>
+                    <h3 class="ps-title">Harmonisation & Audit</h3>
                     <p class="ps-text">De-duplication, boundary harmonisation, 203 temporary tent voting stations spatial tagging, zero missing keys.</p>
                   </div>
                 </div>
@@ -1739,7 +1746,7 @@
                 <div class="pipe-step">
                   <div class="ps-num">3</div>
                   <div class="ps-body">
-                    <h4 class="ps-title">Feature Engineering</h4>
+                    <h3 class="ps-title">Feature Engineering</h3>
                     <p class="ps-text">Effective Number of Parties (ENP), margin of victory, deprivation composite indices, generational age cohorts.</p>
                   </div>
                 </div>
@@ -1747,7 +1754,7 @@
                 <div class="pipe-step">
                   <div class="ps-num">4</div>
                   <div class="ps-body">
-                    <h4 class="ps-title">Spatial 5-Fold Block CV</h4>
+                    <h3 class="ps-title">Spatial 5-Fold Block CV</h3>
                     <p class="ps-text">Prevents spatial autocorrelation leakage. 1-SE rule selection of Ridge (MAE 6.32 pp, R² 0.365) over OLS (VIF &gt; 10).</p>
                   </div>
                 </div>
@@ -1755,7 +1762,7 @@
                 <div class="pipe-step">
                   <div class="ps-num">5</div>
                   <div class="ps-body">
-                    <h4 class="ps-title">Edge App Delivery</h4>
+                    <h3 class="ps-title">Edge App Delivery</h3>
                     <p class="ps-text">Self-contained 505KB JSON client payload powering live what-if simulation, GIS maps, and youth alignment quiz.</p>
                   </div>
                 </div>
@@ -1905,6 +1912,7 @@
 
             <!-- SCREEN 2: Intro & Quiz Screen -->
             <section class="app-screen screen-2" id="screen2" data-screen-index="2">
+              <h1 class="sr-only">CivicPulse Intro &amp; Researcher Profile</h1>
               <div class="screen-content intro-content">
                 <div class="intro-profile-card">
                   <div class="avatar-ring">
@@ -1963,6 +1971,7 @@
 
             <!-- SCREEN 3: Home Screen Layout (Main Dashboard) -->
             <section class="app-screen screen-3" id="screen3" data-screen-index="3">
+              <h1 class="sr-only">CivicPulse Main Dashboard</h1>
               <div class="screen-content home-content">
                 <!-- Home Header with Avatar & Greeting -->
                 <div class="home-user-header">
@@ -1973,9 +1982,9 @@
                       <h2 class="dashboard-title">Main dashboard</h2>
                     </div>
                   </div>
-                  <div class="header-notification-bell" onclick="window.CivicApp.showToast('Gauteng 2026 Voter Registration Snapshot loaded');">
+                  <div class="header-notification-bell" role="button" tabindex="0" aria-label="Notifications (3 unread)" onclick="window.CivicApp.showToast('Gauteng 2026 Voter Registration Snapshot loaded');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                    <span class="notif-badge">3</span>
+                    <span class="notif-badge" aria-hidden="true">3</span>
                   </div>
                 </div>
 
@@ -1998,7 +2007,7 @@
                 <!-- 4 Core Navigation Hub Cards -->
                 <div class="home-hub-grid">
                   <!-- Hub 1: Metros Hub (With Arrow to Screen 4) -->
-                  <div class="hub-card primary-hub" id="hubMetros" onclick="window.CivicApp.goToScreen(4);">
+                  <div class="hub-card primary-hub" id="hubMetros" role="button" tabindex="0" aria-label="Metropolitan municipalities hub: Tshwane, Johannesburg, Ekurhuleni" onclick="window.CivicApp.goToScreen(4);" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <div class="hub-icon-box metro-bg">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
@@ -2015,7 +2024,7 @@
                   </div>
 
                   <!-- Hub 2: Performance Dashboard -->
-                  <div class="hub-card" id="hubPerformance" onclick="window.CivicApp.goToScreen(6);">
+                  <div class="hub-card" id="hubPerformance" role="button" tabindex="0" aria-label="Performance Dashboard: Turnout variance &amp; party share" onclick="window.CivicApp.goToScreen(6);" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <div class="hub-icon-box perf-bg">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -2032,7 +2041,7 @@
                   </div>
 
                   <!-- Hub 3: Calendar -->
-                  <div class="hub-card" id="hubCalendar" onclick="window.CivicApp.showCalendarModal();">
+                  <div class="hub-card" id="hubCalendar" role="button" tabindex="0" aria-label="Calendar: 4 Nov 2026 Election countdown" onclick="window.CivicApp.showCalendarModal();" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <div class="hub-icon-box cal-bg">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -2048,7 +2057,7 @@
                   </div>
 
                   <!-- Hub 4: Settings -->
-                  <div class="hub-card" id="hubSettings" onclick="window.CivicApp.showSettingsModal();">
+                  <div class="hub-card" id="hubSettings" role="button" tabindex="0" aria-label="Settings: Preferences &amp; data export" onclick="window.CivicApp.showSettingsModal();" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <div class="hub-icon-box set-bg">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -2086,9 +2095,10 @@
 
             <!-- SCREEN 4: Metro & Ward Explorer / Filter Screen -->
             <section class="app-screen screen-4" id="screen4" data-screen-index="4">
+              <h1 class="sr-only">Metropolitan Municipalities &amp; Ward Filter</h1>
               <div class="screen-content filter-content">
                 <div class="screen-app-bar">
-                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(3);">
+                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(3);" aria-label="Back to main dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
                   <h2 class="app-bar-title brand-gradient">CivicPulse</h2>
@@ -2205,14 +2215,16 @@
 
             <!-- SCREEN 5: Spatial Deprivation & Map (Screen 3 in wireframe) -->
             <section class="app-screen screen-5" id="screen5" data-screen-index="5">
+              <h1 class="sr-only">Spatial Deprivation Map</h1>
               <div class="screen-content map-content">
                 <div class="screen-app-bar">
-                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(4);">
+                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(4);" aria-label="Back to ward explorer">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
                   <h2 class="app-bar-title">Spatial Deprivation</h2>
                   <div class="map-layer-pill">
-                    <select id="mapMetricToggle" class="select-bare" onchange="window.CivicApp.onMapLayerChange(this.value);">
+                    <label for="mapMetricToggle" class="sr-only">Map Metric Layer</label>
+                    <select id="mapMetricToggle" class="select-bare" aria-label="Map Metric Layer" onchange="window.CivicApp.onMapLayerChange(this.value);">
                       <option value="deprivation">Deprivation Index</option>
                       <option value="turnout">Turnout 2021</option>
                       <option value="youth">Youth Share</option>
@@ -2230,7 +2242,7 @@
 
                   <!-- High-detail Interactive SVG Map Container -->
                   <div class="svg-map-wrapper" id="svgMapContainer">
-                    <svg viewBox="0 0 340 280" class="gauteng-map-svg" id="gautengMapSvg">
+                    <svg viewBox="0 0 340 280" class="gauteng-map-svg" id="gautengMapSvg" role="region" aria-label="Interactive map of Gauteng spatial deprivation and voter turnout">
                       <!-- Definitions -->
                       <defs>
                         <linearGradient id="mapGlow" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -2247,19 +2259,19 @@
                       <!-- Gauteng Province Focus Polygon -->
                       <g class="metro-clusters" id="metroClusters">
                         <!-- City of Tshwane (North cluster) -->
-                        <path id="pathTshwane" class="map-region-path" data-metro="Tshwane"
+                        <path id="pathTshwane" class="map-region-path" data-metro="Tshwane" tabindex="0" role="button" aria-label="City of Tshwane (click or press Enter to filter)"
                               d="M 110,60 L 170,45 L 230,55 L 245,95 L 205,120 L 145,115 L 105,95 Z"
                               fill="rgba(255, 255, 255, 0.2)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
                         <text x="170" y="85" class="map-label" text-anchor="middle">TSHWANE</text>
 
                         <!-- City of Johannesburg (South-West cluster) -->
-                        <path id="pathJhb" class="map-region-path" data-metro="Johannesburg"
+                        <path id="pathJhb" class="map-region-path" data-metro="Johannesburg" tabindex="0" role="button" aria-label="City of Johannesburg (click or press Enter to filter)"
                               d="M 95,125 L 155,120 L 180,165 L 140,195 L 85,175 L 80,145 Z"
                               fill="rgba(255, 255, 255, 0.14)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
                         <text x="130" y="160" class="map-label" text-anchor="middle">JOHANNESBURG</text>
 
                         <!-- Ekurhuleni (East cluster) -->
-                        <path id="pathEku" class="map-region-path" data-metro="Ekurhuleni"
+                        <path id="pathEku" class="map-region-path" data-metro="Ekurhuleni" tabindex="0" role="button" aria-label="City of Ekurhuleni (click or press Enter to filter)"
                               d="M 185,125 L 235,110 L 265,150 L 230,185 L 175,170 Z"
                               fill="rgba(255, 255, 255, 0.08)" fill-opacity="0.85" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.2"/>
                         <text x="220" y="150" class="map-label" text-anchor="middle">EKURHULENI</text>
@@ -2330,9 +2342,10 @@
 
             <!-- SCREEN 6: Deprivation vs Turnout Analytics (Screen 4 in wireframe) -->
             <section class="app-screen screen-6" id="screen6" data-screen-index="6">
+              <h1 class="sr-only">Deprivation vs Turnout Performance Analytics</h1>
               <div class="screen-content analytics-content">
                 <div class="screen-app-bar">
-                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(5);">
+                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(5);" aria-label="Back to spatial map">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
                   <h2 class="app-bar-title">Empirical Findings</h2>
@@ -2342,7 +2355,7 @@
                 <!-- Filters Strip -->
                 <div class="analytics-filter-row">
                   <div class="mini-filter">
-                    <label>Select Metro</label>
+                    <label for="analyticsMetro">Select Metro</label>
                     <select id="analyticsMetro" class="select-pill" onchange="window.CivicApp.updateAnalyticsChart();">
                       <option value="Tshwane" selected>Tshwane</option>
                       <option value="Johannesburg">Johannesburg</option>
@@ -2350,7 +2363,7 @@
                     </select>
                   </div>
                   <div class="mini-filter">
-                    <label>Select age group range</label>
+                    <label for="analyticsAge">Select age group range</label>
                     <select id="analyticsAge" class="select-pill" onchange="window.CivicApp.updateAnalyticsChart();">
                       <option value="18-29" selected>18-29 (Youth)</option>
                       <option value="30-49">30-49 (Working)</option>
@@ -2422,9 +2435,10 @@
 
             <!-- SCREEN 7: Hypothesis Testing Assumptions (Screen 5 in wireframe) -->
             <section class="app-screen screen-7" id="screen7" data-screen-index="7">
+              <h1 class="sr-only">Empirical Hypotheses &amp; Statistical Assumptions</h1>
               <div class="screen-content hypothesis-content">
                 <div class="screen-app-bar">
-                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(6);">
+                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(6);" aria-label="Back to empirical findings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
                   <h2 class="app-bar-title">Model Foundations</h2>
@@ -2464,7 +2478,7 @@
 
                 <!-- Hand Gesture Interaction & Continue Button -->
                 <div class="hypothesis-footer-controls">
-                  <button type="button" class="btn-gesture-icon" id="btnClapFeedback" onclick="window.CivicApp.handleFeedbackClick();" title="Endorse empirical findings">
+                  <button type="button" class="btn-gesture-icon" id="btnClapFeedback" onclick="window.CivicApp.handleFeedbackClick();" title="Endorse empirical findings" aria-label="Endorse empirical findings">
                     <span class="gesture-emoji">👋</span>
                     <span class="gesture-count" id="gestureCount">24</span>
                   </button>
@@ -2478,9 +2492,10 @@
 
             <!-- SCREEN 8: Policy Simulator - What-if Controls (Screen 8 in wireframe) -->
             <section class="app-screen screen-8" id="screen8" data-screen-index="8">
+              <h1 class="sr-only">Policy Simulator &amp; Interventions</h1>
               <div class="screen-content simulator-content">
                 <div class="screen-app-bar">
-                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(7);">
+                  <button class="btn-app-bar-back" onclick="window.CivicApp.goToScreen(7);" aria-label="Back to empirical hypotheses">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
                   <h2 class="app-bar-title">Policy Simulator</h2>
@@ -2505,7 +2520,7 @@
                         <span class="checkbox-box"></span>
                         <span class="feature-name">Service Delivery (+Water/Sanitation)</span>
                       </label>
-                      <input type="range" id="sliderFeature1" min="0" max="50" value="25" class="feature-slider" oninput="window.CivicApp.runSimulation();">
+                      <input type="range" id="sliderFeature1" min="0" max="50" value="25" class="feature-slider" aria-label="Service delivery (+Water/Sanitation) intensity percentage" oninput="window.CivicApp.runSimulation();">
                       <span class="slider-val-bubble" id="valFeature1">+25%</span>
                     </div>
 
@@ -2516,7 +2531,7 @@
                         <span class="checkbox-box"></span>
                         <span class="feature-name">Youth Jobs & Transit Access</span>
                       </label>
-                      <input type="range" id="sliderFeature2" min="0" max="50" value="30" class="feature-slider" oninput="window.CivicApp.runSimulation();">
+                      <input type="range" id="sliderFeature2" min="0" max="50" value="30" class="feature-slider" aria-label="Youth jobs &amp; transit access intensity percentage" oninput="window.CivicApp.runSimulation();">
                       <span class="slider-val-bubble" id="valFeature2">+30%</span>
                     </div>
 
@@ -2527,7 +2542,7 @@
                         <span class="checkbox-box"></span>
                         <span class="feature-name">Replace Tents with Permanent Hubs</span>
                       </label>
-                      <input type="range" id="sliderFeature3" min="0" max="50" value="40" class="feature-slider" oninput="window.CivicApp.runSimulation();">
+                      <input type="range" id="sliderFeature3" min="0" max="50" value="40" class="feature-slider" aria-label="Replace tents with permanent hubs intensity percentage" oninput="window.CivicApp.runSimulation();">
                       <span class="slider-val-bubble" id="valFeature3">+40%</span>
                     </div>
                   </div>
@@ -2641,7 +2656,7 @@
 
                 <!-- Action Controls: Reset & Export Policy Brief -->
                 <div class="sim-action-row">
-                  <button type="button" class="btn-icon-reset" onclick="window.CivicApp.resetSimulation();" title="Reset all sliders">
+                  <button type="button" class="btn-icon-reset" onclick="window.CivicApp.resetSimulation();" title="Reset all sliders" aria-label="Reset all sliders">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
                   </button>
                   <button type="button" class="btn-green-cta flex-grow" onclick="window.CivicApp.exportPolicyBrief();">
@@ -2669,9 +2684,9 @@
           <p>Side-by-side inspection of all 8 screens as presented in the design board.</p>
         </div>
         <div class="board-zoom-controls">
-          <button class="zoom-btn" onclick="window.CivicApp.zoomBoard(-0.1);" title="Zoom Out">−</button>
+          <button class="zoom-btn" onclick="window.CivicApp.zoomBoard(-0.1);" title="Zoom Out" aria-label="Zoom Out">−</button>
           <span class="zoom-level" id="zoomLevelText">100%</span>
-          <button class="zoom-btn" onclick="window.CivicApp.zoomBoard(0.1);" title="Zoom In">+</button>
+          <button class="zoom-btn" onclick="window.CivicApp.zoomBoard(0.1);" title="Zoom In" aria-label="Zoom In">+</button>
           <button class="zoom-btn-reset" onclick="window.CivicApp.resetBoardZoom();">Reset Zoom</button>
         </div>
       </div>
@@ -2826,7 +2841,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title">Privacy & Data Governance</h3>
-        <button class="modal-close-btn" onclick="window.CivicApp.closePrivacyModal();">&times;</button>
+        <button class="modal-close-btn" onclick="window.CivicApp.closePrivacyModal();" aria-label="Close Privacy Modal">&times;</button>
       </div>
       <div class="modal-body">
         <p><strong>POPIA Compliance:</strong> CivicPulse utilizes publicly disclosed Electoral Commission of South Africa (IEC) and Statistics South Africa (Stats SA) Census aggregated open data.</p>
@@ -2919,7 +2934,7 @@
     <!-- Chat Input Form -->
     <form class="chat-input-form" id="chatInputForm" onsubmit="event.preventDefault(); window.CivicApp.handleChatSubmit();">
       <div class="chat-input-wrap">
-        <input type="text" id="chatInput" class="chat-text-input" placeholder="Ask about wards, 2026 turnout, tents, models, or launch..." autocomplete="off">
+        <input type="text" id="chatInput" class="chat-text-input" placeholder="Ask about wards, 2026 turnout, tents, models, or launch..." aria-label="Ask about wards, 2026 turnout, tents, models, or launch" autocomplete="off">
         <button type="submit" class="chat-send-btn" id="btnChatSend" aria-label="Send Message">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
