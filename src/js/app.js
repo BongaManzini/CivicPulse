@@ -607,15 +607,18 @@ class CivicPulseApp {
     const paths = document.querySelectorAll('.map-region-path');
     paths.forEach(p => {
       if (layer === 'turnout') {
-        p.setAttribute('fill', 'rgba(255, 255, 255, 0.22)');
+        p.setAttribute('fill', 'rgba(37, 99, 235, 0.2)');
+        p.setAttribute('stroke', '#2563eb');
       } else if (layer === 'youth') {
-        p.setAttribute('fill', 'rgba(255, 255, 255, 0.14)');
+        p.setAttribute('fill', 'rgba(124, 58, 237, 0.2)');
+        p.setAttribute('stroke', '#7c3aed');
       } else {
         // Deprivation default
         const m = p.getAttribute('data-metro');
-        if (m === 'Tshwane') p.setAttribute('fill', 'rgba(255, 255, 255, 0.2)');
-        else if (m === 'Johannesburg') p.setAttribute('fill', 'rgba(255, 255, 255, 0.14)');
-        else p.setAttribute('fill', 'rgba(255, 255, 255, 0.08)');
+        if (m === 'Tshwane') p.setAttribute('fill', 'rgba(15, 23, 42, 0.12)');
+        else if (m === 'Johannesburg') p.setAttribute('fill', 'rgba(15, 23, 42, 0.18)');
+        else p.setAttribute('fill', 'rgba(15, 23, 42, 0.08)');
+        p.setAttribute('stroke', '#cbd5e1');
       }
     });
     this.showToast(`Map layer updated: ${layer}`);
@@ -645,20 +648,20 @@ class CivicPulseApp {
       const x = startX + i * (barWidth + gap);
       const y = svgHeight - height - 20;
 
-      // High-contrast stepped grayscale from Q1 to Q4
-      const colors = ['#ffffff', '#d4d4d8', '#a1a1aa', '#71717a'];
-      const color = colors[i] || '#ffffff';
+      // Modern vibrant gradient for turnout quartiles Q1 to Q4
+      const colors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
+      const color = colors[i] || '#2563eb';
 
       barsSvg += `
         <g class="bar-group" data-q="${q.quartile}">
-          <rect x="${x}" y="${y}" width="${barWidth}" height="${height}" rx="6" fill="${color}" fill-opacity="0.85">
+          <rect x="${x}" y="${y}" width="${barWidth}" height="${height}" rx="6" fill="${color}" fill-opacity="0.95">
             <animate attributeName="height" from="0" to="${height}" dur="0.5s" fill="freeze" />
             <animate attributeName="y" from="${svgHeight - 20}" to="${y}" dur="0.5s" fill="freeze" />
           </rect>
-          <text x="${x + barWidth / 2}" y="${y - 6}" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">
+          <text x="${x + barWidth / 2}" y="${y - 6}" font-size="10" font-weight="800" fill="#0f172a" text-anchor="middle">
             ${(val * 100).toFixed(1)}%
           </text>
-          <text x="${x + barWidth / 2}" y="${svgHeight - 4}" font-size="9" font-weight="600" fill="#94a3b8" text-anchor="middle">
+          <text x="${x + barWidth / 2}" y="${svgHeight - 4}" font-size="9" font-weight="700" fill="#64748b" text-anchor="middle">
             Q${i + 1}
           </text>
         </g>
@@ -667,7 +670,7 @@ class CivicPulseApp {
 
     container.innerHTML = `
       <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="barchart-svg">
-        <line x1="10" y1="${svgHeight - 18}" x2="${svgWidth - 10}" y2="${svgHeight - 18}" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+        <line x1="10" y1="${svgHeight - 18}" x2="${svgWidth - 10}" y2="${svgHeight - 18}" stroke="#e2e8f0" stroke-width="1.5" />
         ${barsSvg}
       </svg>
     `;
@@ -815,12 +818,12 @@ class CivicPulseApp {
     const length3 = (p3 / 100) * circumference;
 
     svg.innerHTML = `
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12" />
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#ffffff" stroke-width="12"
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#e2e8f0" stroke-width="12" />
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#2563eb" stroke-width="12"
               stroke-dasharray="${length1} ${circumference}" stroke-dashoffset="${offset1}" />
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="12"
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#7c3aed" stroke-width="12"
               stroke-dasharray="${length2} ${circumference}" stroke-dashoffset="${offset2}" />
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="12"
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#059669" stroke-width="12"
               stroke-dasharray="${length3} ${circumference}" stroke-dashoffset="${offset3}" />
     `;
   }
@@ -1077,7 +1080,7 @@ class CivicPulseApp {
      13. Utilities: Theme, Toast, Clock
      -------------------------------------------------------------------------- */
   setupTheme() {
-    const saved = localStorage.getItem('civicpulse_theme') || 'dark';
+    const saved = localStorage.getItem('civicpulse_theme') || 'light';
     this.theme = saved;
     document.documentElement.setAttribute('data-theme', saved);
   }
@@ -3294,7 +3297,7 @@ class CivicPulseApp {
     // Helper to format top 3 party badges
     const formatTopParties = (dist) => {
       return dist.slice(0, 3).map(p => `
-        <span class="badge-mini" style="background: rgba(255,255,255,0.06); border-left: 3px solid ${p.color}; margin-right: 4px; margin-bottom: 3px; display: inline-block;">
+        <span class="badge-mini" style="background: var(--bg-card); border: 1px solid var(--border-card); border-left: 3px solid ${p.color}; color: var(--text-main); margin-right: 4px; margin-bottom: 3px; display: inline-block;">
           <strong>${p.code}</strong> ${(p.share * 100).toFixed(1)}%
         </span>
       `).join('');
@@ -3418,45 +3421,45 @@ class CivicPulseApp {
     ticks.forEach(t => {
       const y = 25 + chartHeight * (1 - (t / 0.6));
       gridHtml += `
-        <line x1="${paddingLeft}" y1="${y}" x2="${svgWidth - 20}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-dasharray="3,3" />
-        <text x="${paddingLeft - 8}" y="${y + 4}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="end">${Math.round(t * 100)}%</text>
+        <line x1="${paddingLeft}" y1="${y}" x2="${svgWidth - 20}" y2="${y}" stroke="#e2e8f0" stroke-dasharray="3,3" />
+        <text x="${paddingLeft - 8}" y="${y + 4}" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">${Math.round(t * 100)}%</text>
       `;
     });
 
     quartiles.forEach((q, i) => {
       const groupX = paddingLeft + i * groupWidth + (groupWidth - (barWidth * 2 + innerGap)) / 2;
 
-      // General Turnout Bar
+      // General Turnout Bar (Vibrant Royal Blue)
       const genH = (q.turnout / 0.6) * chartHeight;
       const genY = 25 + chartHeight - genH;
 
-      // Youth Turnout Bar
+      // Youth Turnout Bar (Vibrant Purple)
       const youthH = (q.youth_turnout / 0.6) * chartHeight;
       const youthY = 25 + chartHeight - youthH;
 
       barsHtml += `
         <g class="chart-group">
           <!-- General Turnout Bar -->
-          <rect x="${groupX}" y="${genY}" width="${barWidth}" height="${genH}" rx="4" fill="#ffffff" fill-opacity="0.95">
+          <rect x="${groupX}" y="${genY}" width="${barWidth}" height="${genH}" rx="5" fill="#2563eb" fill-opacity="0.95">
             <title>${q.quartile}: ${(q.turnout * 100).toFixed(1)}% General Turnout</title>
           </rect>
-          <text x="${groupX + barWidth / 2}" y="${genY - 6}" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">
+          <text x="${groupX + barWidth / 2}" y="${genY - 6}" fill="#0f172a" font-size="11" font-weight="800" text-anchor="middle">
             ${(q.turnout * 100).toFixed(1)}%
           </text>
 
           <!-- Youth Turnout Bar -->
-          <rect x="${groupX + barWidth + innerGap}" y="${youthY}" width="${barWidth}" height="${youthH}" rx="4" fill="rgba(255,255,255,0.3)" fill-opacity="0.9">
+          <rect x="${groupX + barWidth + innerGap}" y="${youthY}" width="${barWidth}" height="${youthH}" rx="5" fill="#7c3aed" fill-opacity="0.9">
             <title>${q.quartile} Youth (18-29): ${(q.youth_turnout * 100).toFixed(1)}%</title>
           </rect>
-          <text x="${groupX + barWidth + innerGap + barWidth / 2}" y="${youthY - 6}" fill="#d4d4d8" font-size="11" font-weight="700" text-anchor="middle">
+          <text x="${groupX + barWidth + innerGap + barWidth / 2}" y="${youthY - 6}" fill="#0f172a" font-size="11" font-weight="800" text-anchor="middle">
             ${(q.youth_turnout * 100).toFixed(1)}%
           </text>
 
           <!-- Quartile X Label -->
-          <text x="${groupX + barWidth + innerGap / 2}" y="${svgHeight - 22}" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">
+          <text x="${groupX + barWidth + innerGap / 2}" y="${svgHeight - 22}" fill="#0f172a" font-size="11" font-weight="700" text-anchor="middle">
             Q${i + 1}
           </text>
-          <text x="${groupX + barWidth + innerGap / 2}" y="${svgHeight - 8}" fill="rgba(255,255,255,0.4)" font-size="9.5" text-anchor="middle">
+          <text x="${groupX + barWidth + innerGap / 2}" y="${svgHeight - 8}" fill="#64748b" font-size="9.5" font-weight="500" text-anchor="middle">
             ${i === 0 ? 'Affluent' : i === 1 ? 'Moderate' : i === 2 ? 'Townships' : 'Informal Tents'}
           </text>
         </g>
@@ -3493,12 +3496,12 @@ class CivicPulseApp {
     const length3 = (p3 / 100) * circumference;
 
     svg.innerHTML = `
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12" />
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#ffffff" stroke-width="12"
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#e2e8f0" stroke-width="12" />
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#2563eb" stroke-width="12"
               stroke-dasharray="${length1} ${circumference}" stroke-dashoffset="${offset1}" />
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="12"
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#7c3aed" stroke-width="12"
               stroke-dasharray="${length2} ${circumference}" stroke-dashoffset="${offset2}" />
-      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="12"
+      <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#059669" stroke-width="12"
               stroke-dasharray="${length3} ${circumference}" stroke-dashoffset="${offset3}" />
     `;
   }
