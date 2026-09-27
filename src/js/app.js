@@ -43,7 +43,7 @@ class CivicPulseApp {
     this.spatialProvince = 'Gauteng';
     this.spatialMarkers = [];
     this.spatialTentMarkers = [];
-    this.showTentMarkers = true;
+    this.showTentMarkers = false;
     this.selectedSpatialWard = null;
     this.spatialSearchQuery = '';
     this.customCsvData = null;
@@ -956,11 +956,11 @@ class CivicPulseApp {
     return { lat: -26.15 + Math.sin(angle) * rad, lng: 28.18 + Math.cos(angle) * rad };
   }
 
-  getFilteredSpatialWards() {
+  getFilteredSpatialWards(ignorePartyFilter = false) {
     const all = this.getSpatialWards();
     return all.filter(w => {
-      // Party filter
-      if (this.spatialPartyFilter !== 'all') {
+      // Party filter (only apply if ignorePartyFilter is false)
+      if (!ignorePartyFilter && this.spatialPartyFilter !== 'all') {
         const win = (w.winner || '').toUpperCase();
         const target = this.spatialPartyFilter.toUpperCase();
         if (target === 'OTHER') {
@@ -1003,7 +1003,7 @@ class CivicPulseApp {
     });
     this.spatialMarkers = [];
 
-    const wards = this.getFilteredSpatialWards();
+    const wards = this.getFilteredSpatialWards(true);
     const partyColors = {
       'DA': '#2563eb',
       'ANC': '#ca8a04',
@@ -1193,9 +1193,23 @@ class CivicPulseApp {
     });
     this.spatialTentMarkers = [];
 
-    if (!this.showTentMarkers) return;
+    const shouldShow = this.showTentMarkers || this.spatialMapLayer === 'tents';
 
-    const wards = this.getSpatialWards();
+    // Update tent toggle button UI state
+    const btn = document.getElementById('btnToggleTents');
+    if (btn) {
+      btn.classList.toggle('active', shouldShow);
+      const span = btn.querySelector('span');
+      if (span) span.textContent = shouldShow ? '203 Tents (On)' : '203 Tents (Off)';
+    }
+
+    if (!shouldShow) {
+      const badge = document.getElementById('spatialTentCountBadge');
+      if (badge) badge.textContent = '0 Canvas Tents';
+      return;
+    }
+
+    const wards = this.getFilteredSpatialWards(true);
     let tentCount = 0;
 
     wards.forEach(w => {
@@ -1658,6 +1672,7 @@ class CivicPulseApp {
     this.spatialMapLayer = layerKey;
     this.renderSpatialWards();
     this.updateSpatialHudLegend();
+    this.renderSpatialTentHotspots();
     this.showToast(`Choropleth layer updated: ${layerKey}`);
   }
 
