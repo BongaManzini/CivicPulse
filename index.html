@@ -11,6 +11,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
   <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -710,8 +713,15 @@
                     <select id="spatialLayerSelect" class="custom-select select-sm" onchange="window.CivicApp.setSpatialMapLayer(this.value);" aria-label="Select Choropleth Visual Metric Layer">
                       <option value="winner" selected>Winning Political Party (Plurality)</option>
                       <option value="turnout">Voter Turnout Rate (%)</option>
-                      <option value="margin">Victory Margin & Swing Battlegrounds (&lt;5%)</option>
+                      <option value="gap">Mobilisation Deficit Gap (Underperforming Wards)</option>
+                      <option value="margin">Victory Margin &amp; Swing Battlegrounds (&lt;5%)</option>
                       <option value="deprivation">Socio-Economic Deprivation Index (Q1-Q4)</option>
+                      <option value="registered">Voter Registration Density (Electorate Size)</option>
+                      <option value="risk">Priority Mobilisation Risk Tiers (High/Med/Low)</option>
+                      <option value="party_anc">ANC Vote Share Intensity (%)</option>
+                      <option value="party_da">DA Vote Share Intensity (%)</option>
+                      <option value="party_eff">EFF Vote Share Intensity (%)</option>
+                      <option value="party_actionsa">ActionSA Vote Share Intensity (%)</option>
                       <option value="tents">Temporary Canvas Tent Stations &amp; Deficits</option>
                       <option value="forecast">2026 Projected Turnout (ML Forecast)</option>
                     </select>

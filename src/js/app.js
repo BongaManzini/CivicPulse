@@ -1041,6 +1041,12 @@ class CivicPulseApp {
         else if (to < 0.52) { fillColor = '#eab308'; strokeColor = '#a16207'; }
         else if (to < 0.62) { fillColor = '#10b981'; strokeColor = '#047857'; }
         else { fillColor = '#3b82f6'; strokeColor = '#1d4ed8'; }
+      } else if (this.spatialMapLayer === 'gap') {
+        const gap = ward.ward_gap_pp !== undefined ? ward.ward_gap_pp : ((ward.turnout - (ward.pred_turnout || ward.turnout)) * 100);
+        if (gap < -8.0) { fillColor = '#991b1b'; strokeColor = '#fca5a5'; strokeWeight = 2.5; radius = 9.5; fillOpacity = 0.95; }
+        else if (gap < -3.0) { fillColor = '#f97316'; strokeColor = '#ea580c'; }
+        else if (gap <= 3.0) { fillColor = '#3b82f6'; strokeColor = '#1d4ed8'; }
+        else { fillColor = '#10b981'; strokeColor = '#047857'; }
       } else if (this.spatialMapLayer === 'margin') {
         const m = ward.margin !== undefined ? ward.margin : 0.15;
         if (m < 0.05) {
@@ -1062,6 +1068,41 @@ class CivicPulseApp {
         else if (dep > 0.50) { fillColor = '#f97316'; strokeColor = '#c2410c'; }
         else if (dep > 0.28) { fillColor = '#3b82f6'; strokeColor = '#1d4ed8'; }
         else { fillColor = '#10b981'; strokeColor = '#047857'; }
+      } else if (this.spatialMapLayer === 'registered') {
+        const reg = ward.registered || 14000;
+        if (reg > 22000) { fillColor = '#8b5cf6'; strokeColor = '#ddd6fe'; radius = 10.0; }
+        else if (reg > 16000) { fillColor = '#4f46e5'; strokeColor = '#c7d2fe'; radius = 8.5; }
+        else if (reg > 12000) { fillColor = '#0284c7'; strokeColor = '#bae6fd'; radius = 7.5; }
+        else { fillColor = '#06b6d4'; strokeColor = '#cffaff'; radius = 6.5; }
+      } else if (this.spatialMapLayer === 'risk') {
+        const tier = (ward.risk_tier || '').toLowerCase();
+        if (tier.includes('high') || ward.turnout < 0.35) { fillColor = '#ef4444'; strokeColor = '#fef08a'; strokeWeight = 2.5; radius = 9.5; fillOpacity = 0.95; }
+        else if (tier.includes('med') || ward.turnout < 0.48) { fillColor = '#f59e0b'; strokeColor = '#ffffff'; }
+        else { fillColor = '#10b981'; strokeColor = '#ffffff'; }
+      } else if (this.spatialMapLayer === 'party_anc') {
+        const share = ward.share_ANC !== undefined ? ward.share_ANC : (ward.winner === 'ANC' ? 0.55 : 0.25);
+        if (share > 0.60) { fillColor = '#b45309'; strokeColor = '#fef08a'; strokeWeight = 2.0; radius = 9.0; }
+        else if (share > 0.45) { fillColor = '#eab308'; strokeColor = '#ffffff'; }
+        else if (share > 0.30) { fillColor = '#fde047'; strokeColor = '#ffffff'; }
+        else { fillColor = '#64748b'; fillOpacity = 0.4; }
+      } else if (this.spatialMapLayer === 'party_da') {
+        const share = ward.share_DA !== undefined ? ward.share_DA : (ward.winner === 'DA' ? 0.65 : 0.20);
+        if (share > 0.60) { fillColor = '#1d4ed8'; strokeColor = '#93c5fd'; strokeWeight = 2.0; radius = 9.0; }
+        else if (share > 0.45) { fillColor = '#3b82f6'; strokeColor = '#ffffff'; }
+        else if (share > 0.30) { fillColor = '#60a5fa'; strokeColor = '#ffffff'; }
+        else { fillColor = '#64748b'; fillOpacity = 0.4; }
+      } else if (this.spatialMapLayer === 'party_eff') {
+        const share = ward.share_EFF !== undefined ? ward.share_EFF : 0.12;
+        if (share > 0.25) { fillColor = '#991b1b'; strokeColor = '#fca5a5'; strokeWeight = 2.0; radius = 9.0; }
+        else if (share > 0.15) { fillColor = '#ef4444'; strokeColor = '#ffffff'; }
+        else if (share > 0.08) { fillColor = '#f43f5e'; strokeColor = '#ffffff'; }
+        else { fillColor = '#64748b'; fillOpacity = 0.4; }
+      } else if (this.spatialMapLayer === 'party_actionsa') {
+        const share = ward.share_ActionSA !== undefined ? ward.share_ActionSA : (ward.winner === 'ActionSA' ? 0.35 : 0.08);
+        if (share > 0.25) { fillColor = '#047857'; strokeColor = '#a7f3d0'; strokeWeight = 2.0; radius = 9.0; }
+        else if (share > 0.15) { fillColor = '#10b981'; strokeColor = '#ffffff'; }
+        else if (share > 0.08) { fillColor = '#34d399'; strokeColor = '#ffffff'; }
+        else { fillColor = '#64748b'; fillOpacity = 0.4; }
       } else if (this.spatialMapLayer === 'tents') {
         const hasTents = (ward.tent_share > 0) || (ward.top_vds && ward.top_vds.some(v => v.tent === 1 || v.station_type === 'Canvas Tent'));
         if (hasTents) {
@@ -1081,6 +1122,30 @@ class CivicPulseApp {
         else if (fc < 0.45) { fillColor = '#f59e0b'; }
         else if (fc < 0.55) { fillColor = '#10b981'; }
         else { fillColor = '#2563eb'; }
+      }
+
+      // Party selection highlight override
+      if (this.spatialPartyFilter && this.spatialPartyFilter !== 'all') {
+        const targetParty = this.spatialPartyFilter.toUpperCase();
+        const wardWinner = (ward.winner || ward.winner_grp || '').toUpperCase();
+        const isMatch = (wardWinner === targetParty) || 
+                        (targetParty === 'VF PLUS' && (wardWinner === 'VF PLUS' || wardWinner === 'VF+')) ||
+                        (targetParty === 'MK' && (wardWinner === 'MK' || wardWinner === 'MKP')) ||
+                        (targetParty === 'OTHER' && !['DA', 'ANC', 'ACTIONSA', 'EFF', 'MK', 'MKP', 'IFP', 'PA', 'VF PLUS', 'VF+'].includes(wardWinner));
+
+        if (isMatch) {
+          fillColor = partyColors[wardWinner] || partyColors['OTHER'];
+          strokeColor = '#ffffff';
+          strokeWeight = 2.8;
+          radius = 10.0;
+          fillOpacity = 0.95;
+        } else {
+          fillColor = '#334155';
+          strokeColor = '#1e293b';
+          strokeWeight = 0.8;
+          radius = 5.0;
+          fillOpacity = 0.20;
+        }
       }
 
       // Highlight selected ward
@@ -1429,6 +1494,14 @@ class CivicPulseApp {
         <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f97316;"></span><span>Low (32.0% – 42.0%)</span></div>
         <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ef4444;"></span><span>Severe Abstention (&lt; 32.0%)</span></div>
       `;
+    } else if (this.spatialMapLayer === 'gap') {
+      titleEl.textContent = 'Mobilisation Deficit Gap (Turnout vs Expected)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#991b1b; box-shadow: 0 0 8px #991b1b;"></span><span>Severe Mobilisation Deficit (&lt; -8.0 pp)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f97316;"></span><span>Underperforming Ward (-8.0 to -3.0 pp)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#3b82f6;"></span><span>On Baseline Target (-3.0 to +3.0 pp)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Overperforming Mobilisation (&gt; +3.0 pp)</span></div>
+      `;
     } else if (this.spatialMapLayer === 'margin') {
       titleEl.textContent = 'Victory Margin & Contestation';
       itemsEl.innerHTML = `
@@ -1443,6 +1516,53 @@ class CivicPulseApp {
         <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f97316;"></span><span>Q3: Elevated Vulnerability (0.50 – 0.70)</span></div>
         <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#3b82f6;"></span><span>Q2: Moderate Density (0.28 – 0.50)</span></div>
         <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Q1: Affluent / Resilient (&lt; 0.28)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'registered') {
+      titleEl.textContent = 'Voter Registration Electorate Size';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#8b5cf6;"></span><span>Mega Ward (&gt; 22,000 Voters)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#4f46e5;"></span><span>Large Electorate (16,000 – 22,000)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#0284c7;"></span><span>Medium Electorate (12,000 – 16,000)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#06b6d4;"></span><span>Compact Electorate (&lt; 12,000)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'risk') {
+      titleEl.textContent = 'Priority Mobilisation Risk Tiers';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ef4444; box-shadow: 0 0 8px #ef4444;"></span><span>High Risk / High Intervention Need</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f59e0b;"></span><span>Medium Risk / Moderate Abstention</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Low Risk / High Stability</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'party_anc') {
+      titleEl.textContent = 'ANC Vote Share Intensity (%)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#b45309;"></span><span>Stronghold (&gt; 60.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#eab308;"></span><span>Plurality (45.0% – 60.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#fde047;"></span><span>Competitive (30.0% – 45.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#64748b;"></span><span>Minority (&lt; 30.0%)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'party_da') {
+      titleEl.textContent = 'DA Vote Share Intensity (%)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#1d4ed8;"></span><span>Stronghold (&gt; 60.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#3b82f6;"></span><span>Plurality (45.0% – 60.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#60a5fa;"></span><span>Competitive (30.0% – 45.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#64748b;"></span><span>Minority (&lt; 30.0%)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'party_eff') {
+      titleEl.textContent = 'EFF Vote Share Intensity (%)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#991b1b;"></span><span>High Presence (&gt; 25.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#ef4444;"></span><span>Moderate (15.0% – 25.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#f43f5e;"></span><span>Emerging (8.0% – 15.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#64748b;"></span><span>Low (&lt; 8.0%)</span></div>
+      `;
+    } else if (this.spatialMapLayer === 'party_actionsa') {
+      titleEl.textContent = 'ActionSA Vote Share Intensity (%)';
+      itemsEl.innerHTML = `
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#047857;"></span><span>High Presence (&gt; 25.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#10b981;"></span><span>Moderate (15.0% – 25.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#34d399;"></span><span>Emerging (8.0% – 15.0%)</span></div>
+        <div class="spatial-legend-row"><span class="spatial-legend-color" style="background:#64748b;"></span><span>Low (&lt; 8.0%)</span></div>
       `;
     } else if (this.spatialMapLayer === 'tents') {
       titleEl.textContent = 'Temporary Canvas Tent Stations';

@@ -15,6 +15,7 @@ Features:
 
 import os
 import json
+import pickle
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -76,7 +77,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# Data Loader
+# Data & PKL Model Loader
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_civicpulse_data():
@@ -92,7 +93,24 @@ def load_civicpulse_data():
                 return json.load(f)
     return None
 
+@st.cache_resource
+def load_pkl_model():
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "data", "turnout_model.pkl"),
+        os.path.join(os.path.dirname(__file__), "src", "data", "turnout_model.pkl"),
+        "./data/turnout_model.pkl"
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "rb") as f:
+                    return pickle.load(f), p
+            except Exception:
+                pass
+    return None, None
+
 data = load_civicpulse_data()
+pkl_model, pkl_path = load_pkl_model()
 
 # -----------------------------------------------------------------------------
 # Sidebar Navigation
@@ -106,6 +124,9 @@ st.sidebar.metric(
     value="4 Nov 2026",
     delta="Countdown Active"
 )
+
+if pkl_model:
+    st.sidebar.success(f"📦 Active Model: Deserialized `.pkl` Pipeline ({os.path.basename(pkl_path)})")
 
 st.sidebar.markdown("### 📌 Research Focus")
 st.sidebar.info(
