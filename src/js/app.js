@@ -2195,6 +2195,23 @@ class CivicPulseApp {
     const val2 = parseInt(document.getElementById('fullSlider2')?.value || document.getElementById('sliderFeature2')?.value || 30, 10);
     const val3 = parseInt(document.getElementById('fullSlider3')?.value || document.getElementById('sliderFeature3')?.value || 40, 10);
 
+    // Read Party Campaign Levers
+    const valANC = parseInt(document.getElementById('partySliderANC')?.value || 10, 10);
+    const valDA = parseInt(document.getElementById('partySliderDA')?.value || 12, 10);
+    const valEFF = parseInt(document.getElementById('partySliderEFF')?.value || 15, 10);
+    const valActionSA = parseInt(document.getElementById('partySliderActionSA')?.value || 8, 10);
+
+    // Update Party Bubble Labels
+    const bANC = document.getElementById('partyBubbleANC');
+    const bDA = document.getElementById('partyBubbleDA');
+    const bEFF = document.getElementById('partyBubbleEFF');
+    const bASA = document.getElementById('partyBubbleActionSA');
+
+    if (bANC) bANC.textContent = `${valANC >= 0 ? '+' : ''}${valANC}%`;
+    if (bDA) bDA.textContent = `${valDA >= 0 ? '+' : ''}${valDA}%`;
+    if (bEFF) bEFF.textContent = `${valEFF >= 0 ? '+' : ''}${valEFF}%`;
+    if (bASA) bASA.textContent = `${valActionSA >= 0 ? '+' : ''}${valActionSA}%`;
+
     // Update label bubbles on mobile
     const bubble1 = document.getElementById('valFeature1');
     const bubble2 = document.getElementById('valFeature2');
@@ -2212,20 +2229,21 @@ class CivicPulseApp {
     if (fBubble3) fBubble3.textContent = `+${val3}%`;
 
     // Calculate simulated uplift using empirical model coefficients
-    // Weights based on DIRISA regression feature importance
     const wService = chk1 ? (val1 / 50) * 6.5 : 0;      // max +6.5 pp
     const wJobs = chk2 ? (val2 / 50) * 5.2 : 0;         // max +5.2 pp
     const wFacilities = chk3 ? (val3 / 50) * 3.8 : 0;   // max +3.8 pp (tent replacement)
 
-    // Model specific damping / tuning
+    // Party Campaign Effects
+    const partyLift = (valANC * 0.08) + (valDA * 0.09) + (valEFF * 0.07) + (valActionSA * 0.06);
+
     let modelMultiplier = 1.0;
     if (this.simState.model === 'Random Forest') modelMultiplier = 1.05;
     else if (this.simState.model === 'XGBoost') modelMultiplier = 0.98;
     else if (this.simState.model === 'OLS') modelMultiplier = 1.08;
 
-    const totalLift = (wService + wJobs + wFacilities) * modelMultiplier;
+    const totalLift = (wService + wJobs + wFacilities + partyLift) * modelMultiplier;
     const baseline = this.simState.baselineYouthTurnout; // 24.0%
-    const simulatedTurnout = Math.min(Math.round(baseline + totalLift), 75);
+    const simulatedTurnout = Math.min(Math.round(baseline + totalLift), 85);
 
     // Update Progress Gauges (Mobile)
     const fillSim = document.getElementById('gaugeFillSimulated');
@@ -2314,9 +2332,9 @@ class CivicPulseApp {
   }
 
   resetSimulation() {
-    ['sliderFeature1', 'sliderFeature2', 'sliderFeature3', 'fullSlider1', 'fullSlider2', 'fullSlider3'].forEach(id => {
+    ['sliderFeature1', 'sliderFeature2', 'sliderFeature3', 'fullSlider1', 'fullSlider2', 'fullSlider3', 'partySliderANC', 'partySliderDA', 'partySliderEFF', 'partySliderActionSA'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.value = 0;
+      if (el) el.value = el.defaultValue || 0;
     });
 
     this.runSimulation();
@@ -2329,7 +2347,7 @@ class CivicPulseApp {
       date: new Date().toISOString(),
       model: this.simState.model,
       metro: this.activeMetro,
-      simulatedTurnout: document.getElementById('gaugeValSimulated')?.textContent || "38%",
+      simulatedTurnout: document.getElementById('fullSimTurnoutVal')?.textContent || "38%",
       baselineTurnout: "24%",
       recommendations: [
         "Eliminate 203 temporary tent voting stations in informal settlements",
@@ -2347,6 +2365,144 @@ class CivicPulseApp {
     URL.revokeObjectURL(url);
 
     this.showToast("Exported Policy Brief JSON successfully!");
+  }
+
+  exportPolicyBriefPdf() {
+    this.exportPolicyBrief();
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const simTurnout = document.getElementById('fullSimTurnoutVal')?.textContent || "58.4%";
+    const impactVal = document.getElementById('fullDonutImpact')?.textContent || "+14.0%";
+    const modelEngine = this.simState.model || 'Ridge Regression (1-SE Rule)';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>CivicPulse Gauteng — Executive Policy & Turnout Simulation Report</title>
+        <style>
+          @page { size: A4 portrait; margin: 15mm; }
+          body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.5; padding: 20px; background: #fff; }
+          .header { border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .title { font-size: 20pt; font-weight: 800; color: #1e3a8a; margin: 0; }
+          .subtitle { font-size: 10pt; color: #64748b; margin-top: 4px; }
+          .badge { background: #dbeafe; color: #1e40af; font-size: 8pt; font-weight: 700; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+          .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+          .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+          .kpi-val { font-size: 16pt; font-weight: 800; color: #2563eb; }
+          .kpi-lbl { font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: 600; }
+          .section { margin-bottom: 20px; }
+          .section-title { font-size: 12pt; font-weight: 700; color: #0f172a; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 9pt; }
+          th { background: #f1f5f9; text-align: left; padding: 8px; border-bottom: 2px solid #cbd5e1; color: #334155; }
+          td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+          .recommendation-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px; font-size: 9.5pt; margin-top: 12px; }
+          .footer { font-size: 8pt; color: #94a3b8; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 class="title">CivicPulse Gauteng — Executive Policy Brief</h1>
+            <div class="subtitle">Municipal Turnout Simulation & Counterfactual Policy Report · 4 Nov 2026 LGE</div>
+          </div>
+          <span class="badge">DIRISA SDC 2026</span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-lbl">Estimation Engine</div>
+            <div class="kpi-val" style="font-size: 12pt; margin-top: 4px;">${modelEngine}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-lbl">Baseline Turnout</div>
+            <div class="kpi-val" style="color: #64748b;">47.4%</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-lbl">Simulated Turnout</div>
+            <div class="kpi-val">${simTurnout}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-lbl">Projected Uplift</div>
+            <div class="kpi-val" style="color: #059669;">${impactVal}</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">1. Active Municipal & Party Intervention Levers</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Intervention Pillar</th>
+                <th>Category</th>
+                <th>Scale Setting</th>
+                <th>Empirical Mechanism & Turnout Impact</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Piped Water & Sanitation Expansion</strong></td>
+                <td>Infrastructure</td>
+                <td>${document.getElementById('fullBubble1')?.textContent || '+25%'}</td>
+                <td>Reduces basic service deficit friction in informal settlement wards.</td>
+              </tr>
+              <tr>
+                <td><strong>Youth Jobs & Transit Subsidies</strong></td>
+                <td>Demographic / Transport</td>
+                <td>${document.getElementById('fullBubble2')?.textContent || '+30%'}</td>
+                <td>Free election day transit for voters under 35; campus hubs.</td>
+              </tr>
+              <tr>
+                <td><strong>Canvas Tent Replacement</strong></td>
+                <td>Electoral Facilities</td>
+                <td>${document.getElementById('fullBubble3')?.textContent || '+40%'}</td>
+                <td>Replaces 203 temporary canvas tent stations with permanent hubs.</td>
+              </tr>
+              <tr>
+                <td><strong>Party Ground Mobilisation Push</strong></td>
+                <td>Campaign Strategy</td>
+                <td>${document.getElementById('partyBubbleANC')?.textContent || '+10%'}</td>
+                <td>Targeted GOTV mobilisation in contested wards.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">2. Executive Recommendations for Municipal & IEC Leadership</h2>
+          <div class="recommendation-box">
+            <strong>Key Priority Actions for 4 November 2026:</strong>
+            <ol style="margin-top: 6px; padding-left: 20px;">
+              <li><strong>Electoral Infrastructure:</strong> Phase out temporary canvas tent polling stations in high-density wards (e.g. Mamelodi, Soweto, Diepsloot) to eliminate weather and queue friction.</li>
+              <li><strong>Youth Registration & GOTV:</strong> Establish mobile IEC registration stations at tertiary campuses and major public transport interchanges.</li>
+              <li><strong>Basic Services:</strong> Accelerate municipal piped water delivery in Q4 high-deprivation wards to address socio-economic turnout friction.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="footer">
+          Generated automatically by CivicPulse Gauteng Intelligence Studio · CSIR / DIRISA SDC 2026 Submission
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    this.showToast("Opening PDF printable report window...");
   }
 
   /* --------------------------------------------------------------------------
